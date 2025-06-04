@@ -7,6 +7,18 @@ from helper.api_manager import APIManager
 from helper.config import *
 from helper.logger import logger
 
+ansi_art = r"""
+  _________                                   _________                      
+ /   _____/ ______________  __ ___________   /   _____/____     ____   ____  
+ \_____  \_/ __ \_  __ \  \/ // __ \_  __ \  \_____  \\__  \   / ___\_/ __ \ 
+ /        \  ___/|  | \/\   /\  ___/|  | \/  /        \/ __ \_/ /_/  >  ___/ 
+/_______  /\___  >__|    \_/  \___  >__|    /_______  (____  /\___  / \___  >
+        \/     \/                 \/                \/     \//_____/      \/ 
+
+                            ServerSage — v1.0
+"""
+print(ansi_art)
+
 # Load the configuration from the YAML file
 config = load_config()
 if config is None or not validate_config(config):
@@ -70,6 +82,7 @@ async def on_ready():
     except Exception as e:
         logger.error("Error loading servers from API on startup: %s!", e)
     logger.info('Successfully finished startup')
+    logger.info('Invite me with this URL! https://discord.com/oauth2/authorize?client_id=1379913363034996746&scope=bot&permissions=10240')
 
 if __name__ == "__main__":
     try:

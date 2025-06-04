@@ -13,15 +13,18 @@ COLOR_MAP = {
 
 class ColorFormatter(logging.Formatter):
     def format(self, record):
-        color = COLOR_MAP.get(record.levelno, RESET)
         message = super().format(record)
-        return f"{color}{message}{RESET}"
+        if sys.stdout.isatty():
+            color = COLOR_MAP.get(record.levelno, RESET)
+            return f"{color}{message}{RESET}"
+        else:
+            return message
 
 def setup_logger():
-    logger = logging.getLogger("ServerSage")
+    logger = logging.getLogger("serversage")
     logger.setLevel(logging.INFO)
-    handler = logging.StreamHandler(sys.stdout)
-    formatter = ColorFormatter("[%(asctime)s] [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+    handler = logging.StreamHandler(sys.stdout)  # Send to stdout instead of stderr
+    formatter = logging.Formatter('[%(levelname)s] %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 

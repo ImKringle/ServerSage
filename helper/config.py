@@ -1,6 +1,7 @@
 import yaml
 import os
 from helper.logger import logger
+from helper.input_handler import prompt_input
 
 # Custom representer to always quote strings
 def quoted_str_representer(dumper, data):
@@ -22,9 +23,9 @@ def convert_keys_to_str(obj):
 
 def create_config():
     config = {
-        "discordToken": input("Please enter your Discord bot token: "),
+        "discordToken": prompt_input("Please enter your Discord bot token:", env_var="DISCORD_TOKEN"),
         "panel": {
-            "APIKey": input("Please enter your panel API key: "),
+            "APIKey": prompt_input("Please enter your panel API key:", env_var="PANEL_API_KEY"),
             "servers": {}
         }
     }
@@ -33,18 +34,16 @@ def create_config():
     logger.info("You can find the ID in the URL of the Games Panel -> https://games.bisecthosting.com/server/<ID>")
     index = 1
     while True:
-        sid = input("Server ID: ").strip()
-        if sid == "":
+        sid = prompt_input("Server ID:")
+        if not sid:
             break
-        name = input(f"Name for server {sid}: ").strip()
-        # Store servers using string keys
+        name = prompt_input(f"Name for server {sid}:")
         config["panel"]["servers"][str(index)] = {
             "name": name,
             "id": sid
         }
         index += 1
 
-    # Convert keys to strings recursively before dumping
     config_to_dump = convert_keys_to_str(config)
 
     with open('config.yaml', 'w') as f:
