@@ -5,7 +5,8 @@ import signal
 from sys import platform
 from helper.api_manager import APIManager
 from helper.config import *
-from helper.logger import logger
+import logging
+from helper.logger import logger, print_colored
 
 ansi_art = r"""
 ----------------------------------------------------------------------------
@@ -75,7 +76,7 @@ async def on_ready():
         for server in servers:
             server_id = server.get("id")
             name = server.get("name", "Unknown")
-            print(f"- {name} (ID: {server_id})")
+            print_colored(f"- {name} (ID: {server_id})", logging.INFO)
     except Exception as e:
         logger.error("Error loading servers from API on startup: %s!", e)
 

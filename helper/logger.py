@@ -47,4 +47,7 @@ def setup_logger():
 
     return logger
 
+def print_colored(msg, level=logging.INFO):
+    print(f"{COLOR_MAP.get(level, RESET)}{msg}{RESET}")
+
 logger = setup_logger()
