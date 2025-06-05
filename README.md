@@ -21,8 +21,7 @@ Before embarking on your quest, make sure you have:
 - **Python 3.12 or later**  
   Download from [python.org](https://www.python.org/downloads/).  
 - **Pip**  
-  Usually included with Python, though can be checked with:
-    >`pip --version`
+  Usually included with Python, though can be checked with: `pip --version`
 - **A Discord Bot Token**  
   Create your bot via the [Discord Developer Portal](https://discord.com/developers/applications) and invite it to your server.  
 - **A BisectHosting Account with access to a Server**  
