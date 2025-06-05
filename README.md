@@ -11,7 +11,8 @@ Welcome to **ServerSage**, your trusty companion in the realm of game server man
   - **Power Actions**: Start, stop, restart, or kill servers with simple commands.  
   - **Server Listing**: View all accessible servers and their statuses at a glance.  
   - **Resource Statistics**: Fetch real-time CPU, RAM, and disk usage for your servers.
-
+  - **Remote Command Use**: Run commands for your servers anywhere through your Discord Server
+  - **Hidable Servers**: Don't want a server to be manageable through Discord? Set "hide" to True on Config Creation or Manual Addition!
 ---
 
 ## 🧙 Prerequisites
@@ -51,19 +52,20 @@ Before embarking on your quest, make sure you have:
     ```
 
     > **Note:** If `config.yaml` does not exist, the bot will prompt you to create one automatically. No prior configuration is necessary.
-
+    It is recommended to enter *all* Servers accessible via your API Token on Setup, and setting any you don't want managed to hide on Setup.
 ---
 
 ## 📜 Command Usage
 
-| Command        | Usage                   | Description                                                   |
-| -------------- | ----------------------- | ------------------------------------------------------------- |
-| Start a Server | `!start <server_index>` | Starts the specified server (based on your `config.yaml`).    |
-| Stop a Server  | `!stop <server_index>`  | Stops the specified server.                                   |
-| Restart Server | `!restart <server_index>` | Restarts the specified server.                              |
-| Kill a Server  | `!kill <server_index>`  | Force kills the specified server.                             |
-| List Servers   | `!list`                 | Lists all accessible servers with their status.               |
-| View Stats     | `!stats <server_index>` | Shows resource usage stats (CPU, RAM, Disk) for the server.  |
+| Command        | Usage                                | Description                                                |
+|----------------|--------------------------------------|------------------------------------------------------------|
+| Start a Server | `!start <server_index>`              | Starts the specified server                                |
+| Stop a Server  | `!stop <server_index>`               | Stops the specified server.                                |
+| Restart Server | `!restart <server_index>`            | Restarts the specified server.                             |
+| Kill a Server  | `!kill <server_index>`               | Force kills the specified server.                          |
+| List Servers   | `!list`                              | Lists all accessible servers with their status.            |
+| View Stats     | `!stats <server_index>`              | Shows resource usage stats (CPU, RAM, Disk) for the server. |
+| Send a Command | `!command <server_index> "<command>"` | Sends the defined Command to the server Console            |
 
 ---
 

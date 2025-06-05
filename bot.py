@@ -8,14 +8,17 @@ from helper.config import *
 from helper.logger import logger
 
 ansi_art = r"""
+----------------------------------------------------------------------------
   _________                                   _________                      
  /   _____/ ______________  __ ___________   /   _____/____     ____   ____  
  \_____  \_/ __ \_  __ \  \/ // __ \_  __ \  \_____  \\__  \   / ___\_/ __ \ 
  /        \  ___/|  | \/\   /\  ___/|  | \/  /        \/ __ \_/ /_/  >  ___/ 
 /_______  /\___  >__|    \_/  \___  >__|    /_______  (____  /\___  / \___  >
         \/     \/                 \/                \/     \//_____/      \/ 
-
-                            ServerSage — v1.0.1
+----------------------------------------------------------------------------
+                      v1.0.2 - @GH/ImKringle/ServerSage
+                          ~ Your Trusty Companion ~
+----------------------------------------------------------------------------
 """
 print(ansi_art)
 
@@ -50,6 +53,7 @@ async def main():
     await bot.load_extension("cogs.power_actions")
     await bot.load_extension("cogs.list")
     await bot.load_extension("cogs.resources")
+    await bot.load_extension("cogs.command")
     loop = asyncio.get_running_loop()
 
     if platform != "win32":
@@ -67,7 +71,7 @@ async def on_ready():
     logger.info("Bot is online as %s!", bot.user)
     try:
         servers = await bot.api_manager.fetch_all_servers()
-        logger.info("Loaded %s servers from StarbaseAPI on Startup:", len(servers))
+        logger.info("Loaded %s servers from ServerSpawnAPI on Startup:", len(servers))
         for server in servers:
             server_id = server.get("id")
             name = server.get("name", "Unknown")
