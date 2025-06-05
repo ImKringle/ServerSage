@@ -51,7 +51,7 @@ def create_config():
         if not sid:
             break
         name = prompt_input(f"Name for server {sid}:")
-        hide_input = prompt_input(f"Hide server {sid} from Commands and Stat Tracking? (yes/no) [no]:").strip().lower()
+        hide_input = (prompt_input(f"Hide server {sid} from Commands and Stat Tracking? (yes/no) [no]:") or "no").strip().lower()
         hide = hide_input in ("yes", "y")
 
         config["panel"]["servers"][str(index)] = {
