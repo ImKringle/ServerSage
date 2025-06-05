@@ -42,16 +42,12 @@ class APIManager:
             await self._session.close()
 
     async def _handle_response(self, response, url):
-        """
-        Process an HTTP response from the API.
-        Handles rate limiting, errors, and parses JSON data.
-        """
         status = response.status
         text = await response.text()
 
         if status == 429:
             self._rate_limited_until = time.monotonic() + 60
-            logger.error(f"Rate limit hit (429). Blocking API calls for 60 seconds.")
+            logger.error("Rate limit hit (429). Blocking API calls for 60 seconds.")
             raise Exception("API rate limit exceeded (429). Pausing requests for 60 seconds.")
 
         if status not in (200, 204, 201):
@@ -59,7 +55,8 @@ class APIManager:
 
         logger.debug(f"API request to {url} returned Status Code: {status}")
 
-        if response.content_length == 0:
+        # ✅ Handle 204 No Content (successful, but no body)
+        if status == 204 or response.content_length == 0:
             return {"message": "Request completed successfully."}
 
         return await response.json()

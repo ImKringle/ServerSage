@@ -47,7 +47,7 @@ class ServerList(commands.Cog):
             response = await self.api_manager.make_request(f"{self.api_manager.base_url}/")
             servers = response.get("data", [])
             if not servers:
-                await ctx.send("No servers found in the API.")
+                await ctx.send("No accessible servers found.")
                 return
 
             config_servers = self.bot.panel_config.get("servers", {})
@@ -90,7 +90,7 @@ class ServerList(commands.Cog):
                 logger.info("Updated config with servers found from API")
                 await ctx.send("Config updated with missing servers from API.")
 
-            msg_lines = ["**Servers found in the API:**"]
+            msg_lines = ["**Accessible Servers:**"]
             for server in servers:
                 attributes = server.get("attributes", {})
                 if not isinstance(attributes, dict):

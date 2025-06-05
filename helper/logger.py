@@ -13,6 +13,9 @@ COLOR_MAP = {
     logging.CRITICAL: "\x1b[41m", # Red background
 }
 
+MAX_LOG_DIR_SIZE_MB = 100
+LOG_DIR = "Logs"
+
 class ColorFormatter(logging.Formatter):
     def format(self, record):
         message = super().format(record)
@@ -22,13 +25,38 @@ class ColorFormatter(logging.Formatter):
         else:
             return message
 
+def get_directory_size(directory):
+    total_size = 0
+    for dirpath, dirnames, filenames in os.walk(directory):
+        for filename in filenames:
+            filepath = os.path.join(dirpath, filename)
+            if os.path.isfile(filepath):
+                total_size += os.path.getsize(filepath)
+    return total_size
+
+def clear_directory(directory):
+    for filename in os.listdir(directory):
+        filepath = os.path.join(directory, filename)
+        try:
+            if os.path.isfile(filepath) or os.path.islink(filepath):
+                os.unlink(filepath)
+            elif os.path.isdir(filepath):
+                shutil.rmtree(filepath)
+        except Exception as e:
+            print_colored(f"Failed to delete {filepath}: {e}", logging.ERROR)
+
 def setup_logger():
     log_filename = "ServerSage.log"
 
+    os.makedirs(LOG_DIR, exist_ok=True)
+
+    dir_size_bytes = get_directory_size(LOG_DIR)
+    if dir_size_bytes > MAX_LOG_DIR_SIZE_MB * 1024 * 1024:
+        clear_directory(LOG_DIR)
+
     if os.path.exists(log_filename):
-        os.makedirs("Logs", exist_ok=True)
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        new_name = os.path.join("Logs", f"ServerSage_{timestamp}.log")
+        new_name = os.path.join(LOG_DIR, f"ServerSage_{timestamp}.log")
         shutil.move(log_filename, new_name)
 
     logger = logging.getLogger("serversage")
@@ -36,7 +64,7 @@ def setup_logger():
     logger.propagate = False
 
     console_handler = logging.StreamHandler(sys.stdout)
-    console_formatter = ColorFormatter('[%(levelname)s] %(message)s')
+    console_formatter = ColorFormatter('[%(asctime)s] [%(levelname)s] %(message)s', "%Y-%m-%d %H:%M:%S")
     console_handler.setFormatter(console_formatter)
     logger.addHandler(console_handler)
 
