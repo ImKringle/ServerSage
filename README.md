@@ -75,6 +75,15 @@ Contributions are very welcome! Feel free to submit pull requests or open issues
 
 ---
 
+## ⚖️ License
+
+This project is licensed under a modified MIT License with a **no commercial use** clause.
+You are free to use, copy, modify, and distribute this software **for personal, non-commercial purposes only**.
+**Commercial use or selling of this software is strictly prohibited without explicit permission.**
+>See the [LICENSE](LICENSE) file for full details.
+
+---
+
 ## 📞 Support
 
 Encountered issues or have questions? Reach out via the GitHub repository's **Issues** section. Your feedback helps ServerSage grow stronger!
