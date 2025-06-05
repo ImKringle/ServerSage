@@ -75,12 +75,6 @@ Contributions are very welcome! Feel free to submit pull requests or open issues
 
 ---
 
-## 📄 License
-
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
----
-
 ## 📞 Support
 
 Encountered issues or have questions? Reach out via the GitHub repository's **Issues** section. Your feedback helps ServerSage grow stronger!
