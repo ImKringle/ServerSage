@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import asyncio
+import aiohttp
 import signal
 from sys import platform
 from helper.api_manager import APIManager
@@ -39,8 +40,22 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 bot.config = config
 bot.panel_config = config.get("panel", {})
 bot.api_manager = APIManager(bot.panel_config)
-
 shutdown_event = asyncio.Event()
+
+async def get_client_id(bot_token: str) -> str:
+    url = "https://discord.com/api/v10/users/@me"
+    headers = {
+        "Authorization": f"Bot {bot_token}"
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, headers=headers) as response:
+            if response.status == 200:
+                data = await response.json()
+                return data["id"]
+            else:
+                logger.error(f"Failed to fetch client ID: {response.status}")
+                return None
 
 async def shutdown():
     logger.info("Shutdown initiated...")
@@ -81,9 +96,11 @@ async def on_ready():
         logger.error("Error loading servers from API on startup: %s!", e)
 
     logger.info("Successfully finished startup")
-    client_id = bot.config["discord"]["client_id"]
-    invite_url = f"https://discord.com/oauth2/authorize?client_id={client_id}&scope=bot&permissions=10240"
-    logger.info("Invite me with this URL: %s", invite_url)
+    client_id = await get_client_id(config['discord']['bot_token'])
+
+    if client_id:
+        invite_url = f"https://discord.com/oauth2/authorize?client_id={client_id}&scope=bot&permissions=10240"
+        logger.info("Invite URL: %s", invite_url)
 
 if __name__ == "__main__":
     try:

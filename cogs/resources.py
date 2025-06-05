@@ -1,7 +1,6 @@
 from discord.ext import commands, tasks
 import yaml
 import discord
-import random
 from helper.logger import logger
 
 def create_bar(percent: float, size: int = 15) -> str:
@@ -64,8 +63,8 @@ class Resources(commands.Cog):
         self.control_channel = bot.config.get("discord", {}).get("control_channel") or bot.control_channel
         if not self.control_channel:
             raise logger.critical("Control channel not configured anywhere! Startup will fail!")
-        self.stats_channel_id =  bot.config.get("discord", {}).get("stats_channel") or bot.control_channel
-        self.stats_message_id =  bot.config.get("stats_message_id") or None
+        self.stats_channel_id = bot.config.get("discord", {}).get("stats_channel") or bot.control_channel
+        self.stats_message_id = bot.config.get("stats_message_id") or None
         self.stats_task.start()
 
     def is_server_hidden(self, server_id: str) -> bool:
@@ -89,6 +88,41 @@ class Resources(commands.Cog):
             logger.info("Config saved with updated stats_message_id")
         except Exception as e:
             logger.error(f"Failed to save config: {e}")
+
+    def extract_resource_data(self, limits: dict, resources: dict) -> dict:
+        mem_limit_mb = limits.get("memory", 0)
+        mem_limit_gb = mem_limit_mb / 1024 if mem_limit_mb else 0
+        cpu_limit = limits.get("cpu", 0)
+        disk_limit_mb = limits.get("disk", 0)
+        disk_limit_gb = disk_limit_mb / 1024 if disk_limit_mb else 0
+
+        mem_used_gb = resources.get("memory_bytes", 0) / (1024 ** 3)
+        cpu_used_pct = resources.get("cpu_absolute", 0)
+        disk_used_gb = resources.get("disk_bytes", 0) / (1024 ** 3)
+        uptime_ms = resources.get("uptime", 0)
+        uptime_seconds = uptime_ms / 1000
+
+        mem_pct = (mem_used_gb / mem_limit_gb) * 100 if mem_limit_gb else 0
+        if cpu_limit > 0:
+            cpu_pct = (cpu_used_pct / cpu_limit) * 100
+        else:
+            cpu_pct = cpu_used_pct
+        cpu_pct = min(cpu_pct, 100)
+
+        if disk_limit_gb > 0:
+            disk_pct = (disk_used_gb / disk_limit_gb) * 100
+        else:
+            disk_pct = (disk_used_gb / (disk_used_gb * 10 or 1)) * 100
+
+        return {
+            "mem_used_gb": mem_used_gb,
+            "mem_pct": mem_pct,
+            "cpu_used_pct": cpu_used_pct,
+            "cpu_pct": cpu_pct,
+            "disk_used_gb": disk_used_gb,
+            "disk_pct": disk_pct,
+            "uptime_seconds": uptime_seconds
+        }
 
     @tasks.loop(seconds=15.0)
     async def stats_task(self):
@@ -122,15 +156,15 @@ class Resources(commands.Cog):
             try:
                 server_details_url = f"{self.api_manager.base_url}/servers/{server_id}"
                 limits_response = await self.api_manager.make_request(server_details_url)
-                limits = limits_response.get("attributes", {}).get("limits", {})
+                limits_data = limits_response.get("attributes", {}).get("limits", {})
 
                 resources_url = f"{self.api_manager.base_url}/servers/{server_id}/resources"
                 stats_response = await self.api_manager.make_request(resources_url)
-                attributes = stats_response.get("attributes", {})
-                current_state = attributes.get("current_state")
-                resources = attributes.get("resources", {})
+                stats_attributes = stats_response.get("attributes", {})
+                server_state = stats_attributes.get("current_state")
+                resource_data = stats_attributes.get("resources", {})
 
-                if current_state != "running":
+                if server_state != "running":
                     combined_text.append(
                         f"~ {server_name} ~\n"
                         "--\n"
@@ -140,38 +174,14 @@ class Resources(commands.Cog):
                     )
                     continue
 
-                mem_limit_mb = limits.get("memory", 0)
-                mem_limit_gb = mem_limit_mb / 1024 if mem_limit_mb else 0
-                cpu_limit = limits.get("cpu", 0)
-                disk_limit_mb = limits.get("disk", 0)
-                disk_limit_gb = disk_limit_mb / 1024 if disk_limit_mb else 0
-
-                mem_used_gb = resources.get("memory_bytes", 0) / (1024 ** 3)
-                cpu_used_pct = resources.get("cpu_absolute", 0)
-                disk_used_gb = resources.get("disk_bytes", 0) / (1024 ** 3)
-                uptime_ms = resources.get("uptime", 0)
-                uptime_seconds = uptime_ms / 1000
-
-                mem_pct = (mem_used_gb / mem_limit_gb) * 100 if mem_limit_gb else 0
-                if cpu_limit and cpu_limit > 0:
-                    cpu_pct = (cpu_used_pct / cpu_limit) * 100
-                else:
-                    cpu_pct = cpu_used_pct
-                cpu_pct = min(cpu_pct, 100)
-                if disk_limit_gb > 0:
-                    disk_pct = (disk_used_gb / disk_limit_gb) * 100
-                else:
-                    # Simulate a limit 10x the current usage so the bar isn't maxed
-                    disk_pct = (disk_used_gb / (disk_used_gb * 10 or 1)) * 100
-
-                uptime_str = format_uptime(uptime_seconds)
-
+                stats = self.extract_resource_data(limits_data, resource_data)
+                uptime_str = format_uptime(stats["uptime_seconds"])
                 combined_text.append(
                     format_server_stats(
                         server_name,
-                        mem_used_gb, mem_pct,
-                        cpu_used_pct, cpu_pct,
-                        disk_used_gb, disk_pct,
+                        stats["mem_used_gb"], stats["mem_pct"],
+                        stats["cpu_used_pct"], stats["cpu_pct"],
+                        stats["disk_used_gb"], stats["disk_pct"],
                         uptime_str
                     )
                 )
@@ -231,46 +241,32 @@ class Resources(commands.Cog):
             return
 
         try:
-            # Fetch details and resource usage
             limits_url = f"{self.api_manager.base_url}/servers/{server_id}"
             stats_url = f"{self.api_manager.base_url}/servers/{server_id}/resources"
 
             limits_response = await self.api_manager.make_request(limits_url)
             stats_response = await self.api_manager.make_request(stats_url)
 
-            limits = limits_response.get("attributes", {}).get("limits", {})
-            attributes = stats_response.get("attributes", {})
-            current_state = attributes.get("current_state")
-            resources = attributes.get("resources", {})
+            limits_data = limits_response.get("attributes", {}).get("limits", {})
+            stats_attributes = stats_response.get("attributes", {})
+            server_state = stats_attributes.get("current_state")
+            resource_data = stats_attributes.get("resources", {})
 
-            if current_state != "running":
-                await ctx.send(f"❌ **{server_name}** is currently offline. Use `!start {server_id}` to power it on.")
+            if server_state != "running":
+                await ctx.send(
+                    f"❌ **{server_name}** is currently offline. Use `!start {server_id}` to power it on.")
                 return
 
-            # Extract and format values
-            mem_limit_mb = limits.get("memory", 0)
-            mem_limit_gb = mem_limit_mb / 1024 if mem_limit_mb else 0
-            cpu_limit = limits.get("cpu", 0)
-            disk_limit_mb = limits.get("disk", 0)
-            disk_limit_gb = disk_limit_mb / 1024 if disk_limit_mb else 0
-
-            mem_used_gb = resources.get("memory_bytes", 0) / (1024 ** 3)
-            cpu_used_pct = resources.get("cpu_absolute", 0)
-            disk_used_gb = resources.get("disk_bytes", 0) / (1024 ** 3)
-            uptime_ms = resources.get("uptime", 0)
-            uptime_seconds = uptime_ms / 1000
-
-            mem_pct = (mem_used_gb / mem_limit_gb) * 100 if mem_limit_gb else 0
-            cpu_pct = (cpu_used_pct / cpu_limit) * 100 if cpu_limit else cpu_used_pct
-            cpu_pct = min(cpu_pct, 100)
-            disk_pct = (disk_used_gb / disk_limit_gb) * 100 if disk_limit_gb else 50
-
-            uptime_str = format_uptime(uptime_seconds)
+            stats = self.extract_resource_data(limits_data, resource_data)
+            uptime_str = format_uptime(stats["uptime_seconds"])
 
             sections = [
-                format_stat_section("🧠", "Memory", f"{mem_used_gb:.2f} GB", create_bar(mem_pct), mem_pct),
-                format_stat_section("🖥️", "CPU", f"{cpu_used_pct:.2f}%", create_bar(cpu_pct), cpu_pct),
-                format_stat_section("📦", "Disk", f"{disk_used_gb:.2f} GB", create_bar(disk_pct), disk_pct),
+                format_stat_section("🧠", "Memory", f"{stats['mem_used_gb']:.2f} GB",
+                                    create_bar(stats["mem_pct"]), stats["mem_pct"]),
+                format_stat_section("🖥️", "CPU", f"{stats['cpu_used_pct']:.2f}%", create_bar(stats["cpu_pct"]),
+                                    stats["cpu_pct"]),
+                format_stat_section("📦", "Disk", f"{stats['disk_used_gb']:.2f} GB",
+                                    create_bar(stats["disk_pct"]), stats["disk_pct"]),
             ]
 
             embed = discord.Embed(

@@ -33,7 +33,6 @@ def create_config():
         "discord": {
             "bot_token": prompt_input("Enter your Discord bot token:", env_var="DISCORD_TOKEN"),
             "control_channel": prompt_input("Enter the channel ID of the Server Channel where commands should be accepted (Discord):", env_var="DISCORD_CHANNEL"),
-            "client_id": prompt_input("Enter your Discord application client ID:", env_var="DISCORD_CLIENT_ID"),
             "stats_channel": prompt_input("Enter the channel ID where Resource Stats / Uptime should be sent (Discord):", env_var="RESOURCE_STATS_CHANNEL"),
             "stats_message_id": ""
         },
@@ -78,9 +77,6 @@ def validate_config(config):
         return False
     if "control_channel" not in discord or not isinstance(discord["control_channel"], str):
         logger.error("Missing or invalid 'control_channel'.")
-        return False
-    if "client_id" not in discord or not isinstance(discord["client_id"], str):
-        logger.error("Missing or invalid 'client_id'.")
         return False
 
     panel = config.get("panel")
