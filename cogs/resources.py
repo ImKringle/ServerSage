@@ -39,6 +39,7 @@ class Resources(commands.Cog):
 
     @tasks.loop(seconds=15.0)
     async def stats_task(self):
+        await self.bot.wait_until_ready()
         if not self.stats_channel_id:
             logger.warning("Stats channel ID not set in config. Skipping stats loop.")
             return

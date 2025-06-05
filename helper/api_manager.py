@@ -57,7 +57,7 @@ class APIManager:
         if status not in (200, 204, 201):
             raise Exception(f"API request failed: {status} - {text}")
 
-        logger.info(f"API request to {url} returned Status Code: {status}")
+        logger.debug(f"API request to {url} returned Status Code: {status}")
 
         if response.content_length == 0:
             return {"message": "Request completed successfully."}
