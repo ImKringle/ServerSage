@@ -5,14 +5,24 @@ Welcome to **ServerSage**, your trusty companion in the realm of game server man
 ---
 
 ## 🌟 Features
+ 
+| Feature                           | Description                                                                                           | Status |
+|-----------------------------------|-------------------------------------------------------------------------------------------------------|------|
+| **Power Actions**                 | Start, stop, restart, or kill servers with simple commands.                                           | ✅    |
+| **Server Listing**                | View all accessible servers and their statuses at a glance.                                           | ✅    |
+| **Resource Statistics**           | Fetch real-time CPU, RAM, and disk usage for your servers.                                            | ✅    |
+| **Remote Command Use**            | Run commands for your servers anywhere through your Discord Server.                                   | ✅    |
+| **Hidable Servers**               | Hide servers from Discord management by setting "hide" to True on Config Creation or Manual Addition. | ✅    |
+| **Startup Tab Management**        | Configure Startup Tab options remotely                                                                | ❌    |
+| **Player List Management**        | Automatic tracking of connected players, clearing players from the Database, etc!                     | 🚧     |
+| **Panel Announcements -> Discord** | Send all Panel Announcements to a designated Discord Channel for Status Updates from BisectHosting    | ❌    |
+| **File Management**               | Add and Remove Server Data all through a Discord Channel                                              | ❌    |
+| **Activity Logs**       | Want to keep track of Panel side Activity? We'll send that to Discord!                                | ❌    |
 
-- **Server Management**  
-  Effortlessly control your game servers using intuitive commands.  
-  - **Power Actions**: Start, stop, restart, or kill servers with simple commands.  
-  - **Server Listing**: View all accessible servers and their statuses at a glance.  
-  - **Resource Statistics**: Fetch real-time CPU, RAM, and disk usage for your servers.
-  - **Remote Command Use**: Run commands for your servers anywhere through your Discord Server
-  - **Hidable Servers**: Don't want a server to be manageable through Discord? Set "hide" to True on Config Creation or Manual Addition!
+### 🔑 Status Key
+- ✅ **Complete** – Feature is fully implemented and working.
+- 🚧 **In Progress** – Feature is currently being developed.
+- ❌ **Planned** – Feature is planned but not yet started.
 ---
 
 ## 🧙 Prerequisites
