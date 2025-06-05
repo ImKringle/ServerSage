@@ -1,44 +1,85 @@
 # ServerSage - Your Wise Game Server Guardian
+
 Welcome to **ServerSage**, your trusty companion in the realm of game server management! This Discord bot harnesses the power of the [BisectHosting ServerSpawn API](https://games.bisecthosting.com/docs) to help you command your game servers with ease.
 
+---
+
 ## 🌟 Features
-- **Server Management**: Effortlessly control your game servers using intuitive commands.
-    - **Power Actions**: Invoke powerful commands to start, stop, restart, or terminate servers with the flick of a wrist.
-    - **Server Listing**: Summon a list of all accessible servers, revealing their secrets and status.
-    - **Resource Statistics**: Retrieve and display real-time resource usage statistics for your servers, including CPU and RAM utilization.
+
+- **Server Management**  
+  Effortlessly control your game servers using intuitive commands.  
+  - **Power Actions**: Start, stop, restart, or kill servers with simple commands.  
+  - **Server Listing**: View all accessible servers and their statuses at a glance.  
+  - **Resource Statistics**: Fetch real-time CPU, RAM, and disk usage for your servers.
+
+---
 
 ## 🧙 Prerequisites
-Before embarking on your quest, ensure you have the following:
-- **Python 3.12 or later**: Make sure Python is installed on your machine. You can download it from [python.org](https://www.python.org/downloads/).
-- **Pip**: Pip is usually included with Python installations. You can verify its installation with `pip --version`.
-- **A Discord bot token**: Create your bot via the [Discord Developer Portal](https://discord.com/developers/applications) and invite it to your server.
-- **A BisectHosting account**: Ensure you have access to the ServerSpawn API.
 
-## ⚔️ Running your own
-1. **Clone the Repository**: Bring the ServerSage to your domain:\
-   ~ `git clone https://github.com/ImKringle/serversage.git`\
-   ~ `cd serversage`
-2. **Install dependencies**: Use pip to install required packages:\
-   ~ `pip install -r requirements.txt`
-3. **Spawn the Sage!**: Start the bot with the following command:\
-   ~ `python bot.py`\
-   **Note:** On startup, if the `config.yaml` does not exist, the bot will prompt you to create one. You are not required to rename or set up the configuration file prior to running the bot; it will handle this automatically.
+Before embarking on your quest, make sure you have:
+
+- **Python 3.12 or later**  
+  Download from [python.org](https://www.python.org/downloads/).  
+- **Pip**  
+  Usually included with Python, though can be checked with:
+    >`pip --version`
+- **A Discord Bot Token**  
+  Create your bot via the [Discord Developer Portal](https://discord.com/developers/applications) and invite it to your server.  
+- **A BisectHosting Account with access to a Server**  
+  This will provide access to the API, you can create a key [here](https://games.bisecthosting.com/account/api) on the Games Panel.
+
+---
+
+## ⚔️ Running Your Own ServerSage
+
+1. **Clone the Repository**
+
+    ```bash
+    git clone https://github.com/ImKringle/serversage.git
+    cd serversage
+    ```
+
+2. **Install Dependencies**
+
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+3. **Spawn the Sage!**
+
+    ```bash
+    python bot.py
+    ```
+
+    > **Note:** If `config.yaml` does not exist, the bot will prompt you to create one automatically. No prior configuration is necessary.
+
+---
 
 ## 📜 Command Usage
-| Command          | Usage                     | Description                                                                 |
-|------------------|---------------------------|-----------------------------------------------------------------------------|
-| Start a Server   | `!start <server_index>`   | Starts the specified server in your list (as defined by the config.yaml).   |
-| Stop a Server    | `!stop <server_index>`    | Stops the specified server.                                                 |
-| Restart a Server | `!restart <server_index>` | Restarts the specified server.                                              |
-| Kill a Server    | `!kill <server_index>`    | Kills the specified server.                                                 |
-| List Servers     | `!list`                   | Displays all accessible servers.                                            |
-| View Stats       | `!stats <server_index>`   | Retrieves and displays the resource statistics of the specified server.     |
+
+| Command        | Usage                   | Description                                                   |
+| -------------- | ----------------------- | ------------------------------------------------------------- |
+| Start a Server | `!start <server_index>` | Starts the specified server (based on your `config.yaml`).    |
+| Stop a Server  | `!stop <server_index>`  | Stops the specified server.                                   |
+| Restart Server | `!restart <server_index>` | Restarts the specified server.                              |
+| Kill a Server  | `!kill <server_index>`  | Force kills the specified server.                             |
+| List Servers   | `!list`                 | Lists all accessible servers with their status.               |
+| View Stats     | `!stats <server_index>` | Shows resource usage stats (CPU, RAM, Disk) for the server.  |
+
+---
 
 ## 🛠️ Contributing
-Contributions are welcome! If you'd like to help improve ServerSage, feel free to submit a pull request or open an issue to discuss potential enhancements.
+
+Contributions are very welcome! Feel free to submit pull requests or open issues for discussion and feature requests.
+
+---
 
 ## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
+---
 
 ## 📞 Support
-If you encounter any issues or have questions, feel free to reach out through the GitHub repository via the "Issues" section
+
+Encountered issues or have questions? Reach out via the GitHub repository's **Issues** section. Your feedback helps ServerSage grow stronger!
