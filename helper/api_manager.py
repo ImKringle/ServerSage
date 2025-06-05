@@ -1,6 +1,7 @@
 import os
 import yaml
 import aiohttp
+import time
 from helper.logger import logger
 
 class APIManager:
@@ -8,13 +9,22 @@ class APIManager:
     Async helper class for interacting with the BisectHosting API.
     """
     def __init__(self, panel_config, config_path="config.yaml"):
+        """
+        Initialize the APIManager with panel config and optional config file path.
+        Sets API key, base URL, and initializes internal state.
+        """
         self.api_key = panel_config.get("APIKey")
         self.base_url = "https://games.bisecthosting.com/api/client"
         self.config_path = config_path
         self.panel_config = panel_config
         self._session = None
+        self._rate_limited_until = 0
 
     async def _get_session(self):
+        """
+        Lazily create and return an aiohttp ClientSession with proper headers.
+        Reuses the session if already created.
+        """
         if self._session is None:
             self._session = aiohttp.ClientSession(headers={
                 "Authorization": f"Bearer {self.api_key}",
@@ -24,37 +34,66 @@ class APIManager:
         return self._session
 
     async def close(self):
+        """
+        Close the aiohttp ClientSession if it exists.
+        Should be called when shutting down to clean up resources.
+        """
         if self._session:
             await self._session.close()
 
+    async def _handle_response(self, response, url):
+        """
+        Process an HTTP response from the API.
+        Handles rate limiting, errors, and parses JSON data.
+        """
+        status = response.status
+        text = await response.text()
+
+        if status == 429:
+            self._rate_limited_until = time.monotonic() + 60
+            logger.error(f"Rate limit hit (429). Blocking API calls for 60 seconds.")
+            raise Exception("API rate limit exceeded (429). Pausing requests for 60 seconds.")
+
+        if status not in (200, 204, 201):
+            raise Exception(f"API request failed: {status} - {text}")
+
+        logger.info(f"API request to {url} returned Status Code: {status}")
+
+        if response.content_length == 0:
+            return {"message": "Request completed successfully."}
+
+        return await response.json()
+
     async def make_request(self, url, method='GET', payload=None):
+        """
+        Make an asynchronous HTTP request to the API.
+        Supports GET and POST methods, respects rate limits, and returns JSON data.
+        """
         session = await self._get_session()
+        now = time.monotonic()
+        if now < self._rate_limited_until:
+            wait_time = self._rate_limited_until - now
+            logger.warning(f"API requests are rate limited. Blocking calls for {wait_time:.1f} more seconds.")
+            raise Exception(f"API rate limited. Please wait {wait_time:.1f} seconds before retrying.")
         try:
             if method.upper() == 'GET':
                 async with session.get(url) as response:
-                    text = await response.text()
-                    if response.status not in (200, 204):
-                        raise Exception(f"API request failed: {response.status} - {text}")
-                    logger.info("API request to %s returned Status Code: %s", url, response.status)
-                    if response.content_length == 0:
-                        return {"message": "Request completed successfully."}
-                    return await response.json()
+                    return await self._handle_response(response, url)
             elif method.upper() == 'POST':
                 async with session.post(url, json=payload) as response:
-                    text = await response.text()
-                    if response.status not in (200, 204):
-                        raise Exception(f"API request failed: {response.status} - {text}")
-                    logger.info("API request to %s returned %s: %s", url, response.status, text)
-                    if response.content_length == 0:
-                        return {"message": "Request completed successfully."}
-                    return await response.json()
+                    return await self._handle_response(response, url)
             else:
                 raise ValueError("Unsupported HTTP method.")
         except Exception as e:
-            logger.error("Error during API request: %s", e)
+            logger.error(f"Error during API request: {e}")
             raise
 
     async def fetch_all_servers(self):
+        """
+        Fetch the list of servers from the API and synchronize with local config.
+        Updates local config with any new or removed servers, and reindexes the list.
+        Returns a list of server dicts with 'id' and 'name'.
+        """
         url = f"{self.base_url}/"
         response = await self.make_request(url)
         servers = response.get("data", [])
@@ -74,12 +113,10 @@ class APIManager:
 
         config_id_to_key = {v["id"]: k for k, v in config_servers.items() if "id" in v}
 
-        # Remove servers not in API
         to_remove = [key for key, v in config_servers.items() if v.get("id") not in api_server_ids]
         for key in to_remove:
             del config_servers[key]
 
-        # Add new servers from API not in config
         for server_id in api_server_ids:
             if server_id not in config_id_to_key:
                 config_servers[server_id] = {
@@ -91,7 +128,6 @@ class APIManager:
                 if config_servers[key]["name"] != api_servers_map[server_id]:
                     config_servers[key]["name"] = api_servers_map[server_id]
 
-        # Reindex servers
         new_servers = {}
         sorted_servers = sorted(config_servers.values(), key=lambda s: s["name"].lower())
 
@@ -104,6 +140,9 @@ class APIManager:
         return [{"id": v["id"], "name": v["name"]} for v in new_servers.values()]
 
     def _save_config(self):
+        """
+        Save the updated panel config back to the YAML config file.
+        """
         if not os.path.exists(self.config_path):
             raise FileNotFoundError(f"Config file not found: {self.config_path}")
         with open(self.config_path, "r") as file:
@@ -111,8 +150,3 @@ class APIManager:
         config["panel"] = self.panel_config
         with open(self.config_path, "w") as file:
             yaml.dump(config, file, default_flow_style=False, sort_keys=False)
-
-    async def send_power_action(self, server_id, action):
-        url = f"{self.base_url}/servers/{server_id}/power"
-        payload = {"signal": action}
-        return await self.make_request(url, method='POST', payload=payload)

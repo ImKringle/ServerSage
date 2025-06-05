@@ -40,20 +40,16 @@ shutdown_event = asyncio.Event()
 
 async def shutdown():
     logger.info("Shutdown initiated...")
-    await bot.api_manager.close()  # close aiohttp session properly
+    await bot.api_manager.close()
     await bot.close()
     shutdown_event.set()
     logger.info("Bot has been closed cleanly.")
 
 async def main():
-    # Create single shared APIManager instance on bot
     bot.api_manager = APIManager(bot.panel_config)
-
-    # Load your extensions before starting the bot
     await bot.load_extension("cogs.power_actions")
     await bot.load_extension("cogs.list")
     await bot.load_extension("cogs.resources")
-
     loop = asyncio.get_running_loop()
 
     if platform != "win32":
@@ -61,18 +57,15 @@ async def main():
             loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown()))
     else:
         logger.warning("Signal handlers not supported on Windows, rely on KeyboardInterrupt.")
-
     try:
-        await bot.start(config['discordToken'])
+        await bot.start(config['discord']['bot_token'])
     except asyncio.CancelledError:
         pass
 
 @bot.event
 async def on_ready():
     logger.info("Bot is online as %s!", bot.user)
-
     try:
-        # Use the existing APIManager instance
         servers = await bot.api_manager.fetch_all_servers()
         logger.info("Loaded %s servers from StarbaseAPI on Startup:", len(servers))
         for server in servers:
@@ -81,8 +74,11 @@ async def on_ready():
             print(f"- {name} (ID: {server_id})")
     except Exception as e:
         logger.error("Error loading servers from API on startup: %s!", e)
-    logger.info('Successfully finished startup')
-    logger.info('Invite me with this URL! https://discord.com/oauth2/authorize?client_id=1379913363034996746&scope=bot&permissions=10240')
+
+    logger.info("Successfully finished startup")
+    client_id = bot.config["discord"]["client_id"]
+    invite_url = f"https://discord.com/oauth2/authorize?client_id={client_id}&scope=bot&permissions=10240"
+    logger.info("Invite me with this URL: %s", invite_url)
 
 if __name__ == "__main__":
     try:

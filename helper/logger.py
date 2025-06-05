@@ -23,7 +23,7 @@ class ColorFormatter(logging.Formatter):
 def setup_logger():
     logger = logging.getLogger("serversage")
     logger.setLevel(logging.INFO)
-    handler = logging.StreamHandler(sys.stdout)  # Send to stdout instead of stderr
+    handler = logging.StreamHandler(sys.stdout)
     formatter = logging.Formatter('[%(levelname)s] %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)

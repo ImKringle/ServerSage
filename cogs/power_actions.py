@@ -1,4 +1,3 @@
-from helper.api_manager import APIManager
 from discord.ext import commands
 from helper.logger import logger
 
@@ -6,6 +5,16 @@ class ServerControl(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.api = bot.api_manager
+        self.control_channel = bot.config.get("discord", {}).get("control_channel") or bot.control_channel
+        if not self.control_channel:
+            raise logger.critical("Control channel not configured anywhere! Startup will fail!")
+
+    def is_server_hidden(self, server_id: str) -> bool:
+        servers = self.bot.panel_config.get("servers", {})
+        for s in servers.values():
+            if s.get("id", "").lower() == server_id.lower():
+                return s.get("hide", False)
+        return False
 
     def resolve_server_id(self, input_str: str) -> str:
         """
@@ -26,7 +35,16 @@ class ServerControl(commands.Cog):
         return input_str
 
     async def _send_power_action(self, ctx, server_input: str, action: str):
+        """
+        Sends the resolved Server ID a Power Action
+        """
+        if str(ctx.channel.id) != str(self.control_channel):
+            await ctx.send(f"⚠️ ServerSage Commands can only be used in the designated control channel. Ask someone with permission!")
+            return
         server_id = self.resolve_server_id(server_input)
+        if self.is_server_hidden(server_id):
+            await ctx.send(f"❌ Server `{server_input}` is hidden and cannot be controlled via commands.")
+            return
         url = f"{self.api.base_url}/servers/{server_id}/power"
         payload = {"signal": action}
         try:
