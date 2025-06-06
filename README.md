@@ -96,15 +96,17 @@ ServerSage connects with the [ServerSpawnAPI](https://games.bisecthosting.com/) 
 
 ## 📖 Command Reference
 
-| Command        | Usage                                 | Description                                               |
-|----------------|---------------------------------------|-----------------------------------------------------------|
-| Start Server   | `!start <server_index>`               | Starts a selected server                                  |
-| Stop Server    | `!stop <server_index>`                | Gracefully shuts down a server                            |
-| Restart Server | `!restart <server_index>`             | Restarts the selected server                              |
-| Kill Server    | `!kill <server_index>`                | Force kills the server (immediate shutdown)               |
-| List Servers   | `!list`                               | Lists all accessible servers and their current status     |
-| View Stats     | `!stats <server_index>`               | Shows CPU, memory, and disk usage for the server          |
-| Run Command    | `!command <server_index> "<command>"` | Executes a command on the server console                  |
+| Command                | Usage                                 | Description                                                                             |
+|------------------------|---------------------------------------|-----------------------------------------------------------------------------------------|
+| Start Server           | `!start <server_index>`               | Starts a selected server                                                                |
+| Stop Server            | `!stop <server_index>`                | Gracefully shuts down a server                                                          |
+| Restart Server         | `!restart <server_index>`             | Restarts the selected server                                                            |
+| Kill Server            | `!kill <server_index>`                | Force kills the server (immediate shutdown)                                             |
+| List Servers           | `!list`                               | Lists all accessible servers and their current status                                   |
+| View Stats             | `!stats <server_index>`               | Shows CPU, memory, and disk usage for the server                                        |
+| Run Command            | `!command <server_index> "<command>"` | Executes a command on the server console                                                |
+| Player List            | `!playerlist <server_index>`          | Replies with the current Online Players                                                 |
+| Clear Inactive Players | `!clearplayers <server_index> <time>` | Clears the provided Servers PlayerList of Inactive Players per the provided Time window |
 
 ---
 
