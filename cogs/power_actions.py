@@ -1,38 +1,15 @@
 from discord.ext import commands
 from helper.logger import logger
+from helper.utilities import resolve_server_id, is_server_hidden
 
 class ServerControl(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.api = bot.api_manager
-        self.control_channel = bot.config.get("discord", {}).get("control_channel") or bot.control_channel
+        self.api_manager = bot.api_manager
+        self.panel_config = bot.panel_config
+        self.control_channel = bot.control_channel
         if not self.control_channel:
             raise logger.critical("Control channel not configured anywhere! Startup will fail!")
-
-    def is_server_hidden(self, server_id: str) -> bool:
-        servers = self.bot.panel_config.get("servers", {})
-        for s in servers.values():
-            if s.get("id", "").lower() == server_id.lower():
-                return s.get("hide", False)
-        return False
-
-    def resolve_server_id(self, input_str: str) -> str:
-        """
-        Attempts to resolve a server name or ID (case-insensitive) to its server ID.
-        If input matches a server name or ID in the config, returns the server ID.
-        Otherwise, returns the input unchanged.
-        """
-        input_str = input_str.strip().lower()
-        servers = self.bot.panel_config.get("servers", {})
-
-        for _, server_info in servers.items():
-            server_name = server_info.get("name", "").lower()
-            server_id = server_info.get("id", "").lower()
-
-            if input_str == server_name or input_str == server_id:
-                return server_info.get("id", input_str)
-
-        return input_str
 
     async def _send_power_action(self, ctx, server_input: str, action: str):
         """
@@ -41,14 +18,14 @@ class ServerControl(commands.Cog):
         if str(ctx.channel.id) != str(self.control_channel):
             await ctx.send(f"⚠️ ServerSage Commands can only be used in the designated control channel. Ask someone with permission!")
             return
-        server_id = self.resolve_server_id(server_input)
-        if self.is_server_hidden(server_id):
-            await ctx.send(f"❌ Server `{server_input}` is hidden and cannot be controlled via commands.")
+        server_id = resolve_server_id(self.panel_config, server_input)
+        if is_server_hidden(self.panel_config, server_id):
+            await ctx.send(f"❌ Server `{server_id}` is hidden and cannot be controlled via commands.")
             return
-        url = f"{self.api.base_url}/servers/{server_id}/power"
+        url = f"{self.api_manager.base_url}/servers/{server_id}/power"
         payload = {"signal": action}
         try:
-            result = await self.api.make_request(url, method='POST', payload=payload)
+            result = await self.api_manager.make_request(url, method='POST', payload=payload)
             display_name = server_input if server_id == server_input else f"{server_input} ({server_id})"
             await ctx.send(
                 f"✅ `{action}` signal sent to `{display_name}`.\nResponse: `{result.get('message', result)}`")

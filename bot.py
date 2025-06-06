@@ -1,11 +1,11 @@
 import discord
 from discord.ext import commands
 import asyncio
-import aiohttp
 import signal
 from sys import platform
 from helper.api_manager import APIManager
 from helper.config import *
+from helper.utilities import get_client_id
 import logging
 from helper.logger import logger, print_colored
 
@@ -18,7 +18,7 @@ ansi_art = r"""
 /_______  /\___  >__|    \_/  \___  >__|    /_______  (____  /\___  / \___  >
         \/     \/                 \/                \/     \//_____/      \/ 
 ----------------------------------------------------------------------------
-                      v1.0.2 - @GH/ImKringle/ServerSage
+                      v1.0.3 - @GH/ImKringle/ServerSage
                           ~ Your Trusty Companion ~
 ----------------------------------------------------------------------------
 """
@@ -36,26 +36,13 @@ if config is None or not validate_config(config):
 
 intents = discord.Intents.default()
 intents.message_content = True
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 bot.config = config
+token = (config['discord']['bot_token'])
 bot.panel_config = config.get("panel", {})
 bot.api_manager = APIManager(bot.panel_config)
+bot.control_channel = bot.config.get("discord", {}).get("control_channel")
 shutdown_event = asyncio.Event()
-
-async def get_client_id(bot_token: str) -> str:
-    url = "https://discord.com/api/v10/users/@me"
-    headers = {
-        "Authorization": f"Bot {bot_token}"
-    }
-
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=headers) as response:
-            if response.status == 200:
-                data = await response.json()
-                return data["id"]
-            else:
-                logger.error(f"Failed to fetch client ID: {response.status}")
-                return None
 
 async def shutdown():
     logger.info("Shutdown initiated...")
@@ -66,19 +53,17 @@ async def shutdown():
 
 async def main():
     bot.api_manager = APIManager(bot.panel_config)
-    await bot.load_extension("cogs.power_actions")
-    await bot.load_extension("cogs.list")
-    await bot.load_extension("cogs.resources")
-    await bot.load_extension("cogs.command")
+    for cog in ("players", "power_actions", "list", "resources", "command", "help"):
+        await bot.load_extension(f"cogs.{cog}")
+        logger.info(f"Loaded {cog}.")
     loop = asyncio.get_running_loop()
-
     if platform != "win32":
         for sig in (signal.SIGINT, signal.SIGTERM):
             loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown()))
     else:
         logger.warning("Signal handlers not supported on Windows, rely on KeyboardInterrupt.")
     try:
-        await bot.start(config['discord']['bot_token'])
+        await bot.start(token)
     except asyncio.CancelledError:
         pass
 
@@ -94,12 +79,10 @@ async def on_ready():
             print_colored(f"- {name} (ID: {server_id})", logging.INFO)
     except Exception as e:
         logger.error("Error loading servers from API on startup: %s!", e)
-
     logger.info("Successfully finished startup")
-    client_id = await get_client_id(config['discord']['bot_token'])
-
+    client_id = await get_client_id(token)
     if client_id:
-        invite_url = f"https://discord.com/oauth2/authorize?client_id={client_id}&scope=bot&permissions=10240"
+        invite_url = f"https://discord.com/oauth2/authorize?client_id={client_id}&scope=bot&permissions=551903374336"
         logger.info("Invite URL: %s", invite_url)
 
 if __name__ == "__main__":

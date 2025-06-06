@@ -1,8 +1,7 @@
-import os
-import yaml
 import aiohttp
 import time
 from helper.logger import logger
+from helper.config import save_config, load_config
 
 class APIManager:
     """
@@ -64,7 +63,7 @@ class APIManager:
     async def make_request(self, url, method='GET', payload=None):
         """
         Make an asynchronous HTTP request to the API.
-        Supports GET and POST methods, respects rate limits, and returns JSON data.
+        Supports GET, POST, and DELETE methods, respects rate limits, and returns JSON data.
         """
         session = await self._get_session()
         now = time.monotonic()
@@ -78,6 +77,9 @@ class APIManager:
                     return await self._handle_response(response, url)
             elif method.upper() == 'POST':
                 async with session.post(url, json=payload) as response:
+                    return await self._handle_response(response, url)
+            elif method.upper() == 'DELETE':
+                async with session.delete(url) as response:
                     return await self._handle_response(response, url)
             else:
                 raise ValueError("Unsupported HTTP method.")
@@ -132,18 +134,8 @@ class APIManager:
             new_servers[str(idx)] = server
 
         self.panel_config["servers"] = new_servers
-        self._save_config()
+        config = load_config()
+        config["panel"] = self.panel_config
+        save_config(config=config, path=self.config_path)
 
         return [{"id": v["id"], "name": v["name"]} for v in new_servers.values()]
-
-    def _save_config(self):
-        """
-        Save the updated panel config back to the YAML config file.
-        """
-        if not os.path.exists(self.config_path):
-            raise FileNotFoundError(f"Config file not found: {self.config_path}")
-        with open(self.config_path, "r") as file:
-            config = yaml.safe_load(file)
-        config["panel"] = self.panel_config
-        with open(self.config_path, "w") as file:
-            yaml.dump(config, file, default_flow_style=False, sort_keys=False)

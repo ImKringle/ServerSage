@@ -1,37 +1,18 @@
 from discord.ext import commands
-import yaml
 import os
-from helper.api_manager import APIManager
-from helper.config import convert_keys_to_str
 from helper.logger import logger
-
+from helper.utilities import is_server_hidden
+from helper.config import save_config
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.yaml")
 
 class ServerList(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.api_manager = APIManager(bot.panel_config)
-        self.control_channel = bot.config.get("discord", {}).get("control_channel") or bot.control_channel
+        self.api_manager = bot.api_manager
+        self.panel_config = bot.panel_config
+        self.control_channel = bot.control_channel
         if not self.control_channel:
             raise logger.critical("Control channel not configured anywhere! Startup will fail!")
-
-    def save_config(self):
-        """
-        Save the current bot.config dictionary back to the YAML config file,
-        using quoted strings and converted keys.
-        """
-        try:
-            with open(CONFIG_PATH, "w") as f:
-                yaml.dump(convert_keys_to_str(self.bot.config), f, sort_keys=False)
-        except Exception as e:
-            logger.error(f"Failed to save config: {e}")
-
-    def is_server_hidden(self, server_id: str) -> bool:
-        servers = self.bot.panel_config.get("servers", {})
-        for s in servers.values():
-            if s.get("id", "").lower() == server_id.lower():
-                return s.get("hide", False)
-        return False
 
     @commands.command(name="list")
     async def list_servers(self, ctx):
@@ -86,7 +67,7 @@ class ServerList(commands.Cog):
             if updated:
                 self.bot.panel_config["servers"] = config_servers
                 self.bot.config["panel"] = self.bot.panel_config
-                self.save_config()
+                save_config(bot=self.bot, path=CONFIG_PATH)
                 logger.info("Updated config with servers found from API")
                 await ctx.send("Config updated with missing servers from API.")
 
@@ -97,7 +78,7 @@ class ServerList(commands.Cog):
                     continue
                 name = attributes.get("name", "Unknown")
                 server_id = attributes.get("identifier", "Unknown")
-                if self.is_server_hidden(server_id):
+                if is_server_hidden(self.panel_config, server_id):
                     continue
                 msg_lines.append(f"- {name} (ID: {server_id})")
             message = "\n".join(msg_lines)

@@ -1,46 +1,75 @@
-# ServerSage - Your Wise Game Server Guardian
+# ServerSage - Discord-Based Game Server Management (Self-Hosted Only)
 
-Welcome to **ServerSage**, your trusty companion in the realm of game server management! This Discord bot harnesses the power of the [BisectHosting ServerSpawn API](https://games.bisecthosting.com/docs) to help you command your game servers with ease.
+**ServerSage** is a self-hosted Discord bot built for managing game servers via the [BisectHosting ServerSpawn API](https://games.bisecthosting.com/docs). It provides a secure, centralized control interface directly within Discord — ideal for individuals or small teams who need remote server control without relying on web panels.
+
+> ⚠️ This project is designed for self-hosted environments only. It is not available as a public or hosted bot instance.
 
 ---
 
-## 🌟 Features
+## 🔧 Core Features
  
-| Feature                           | Description                                                                                           | Status |
-|-----------------------------------|-------------------------------------------------------------------------------------------------------|------|
-| **Power Actions**                 | Start, stop, restart, or kill servers with simple commands.                                           | ✅    |
-| **Server Listing**                | View all accessible servers and their statuses at a glance.                                           | ✅    |
-| **Resource Statistics**           | Fetch real-time CPU, RAM, and disk usage for your servers.                                            | ✅    |
-| **Remote Command Use**            | Run commands for your servers anywhere through your Discord Server.                                   | ✅    |
-| **Hidable Servers**               | Hide servers from Discord management by setting "hide" to True on Config Creation or Manual Addition. | ✅    |
-| **Startup Tab Management**        | Configure Startup Tab options remotely                                                                | ❌    |
-| **Player List Management**        | Automatic tracking of connected players, clearing players from the Database, etc!                     | 🚧     |
-| **Panel Announcements -> Discord** | Send all Panel Announcements to a designated Discord Channel for Status Updates from BisectHosting    | ❌    |
-| **File Management**               | Add and Remove Server Data all through a Discord Channel                                              | ❌    |
-| **Activity Logs**       | Want to keep track of Panel side Activity? We'll send that to Discord!                                | ❌    |
+| Feature                            | Description                                                                              | Status |
+|------------------------------------|------------------------------------------------------------------------------------------|--------|
+| **Power Actions**                  | Start, stop, restart, or kill servers using Discord commands.                            | ✅     |
+| **Server Listing**                 | View all accessible servers and their statuses.                                          | ✅     |
+| **Resource Statistics**            | View real-time CPU, RAM, and disk usage.                                                 | ✅     |
+| **Remote Command Execution**       | Send commands to a server's console directly through Discord.                            | ✅     |
+| **Hidable Servers**                | Exclude specific servers from bot visibility using the `hide` flag during setup.         | ✅     |
+| **Startup Tab Management**         | Modify Startup tab values remotely via Discord.                                          | ❌     |
+| **Player List Management**         | Automatically track connected players and clean up inactive entries.                     | ✅     |
+| **Panel → Discord Announcements**  | Route panel announcements (e.g. outages, game info, etc) to a dedicated Discord channel. | ❌     |
+| **Log File Viewing**               | Auto-detect and display the most recent server logs, or prompt for input if needed.      | 🚧     |
+| **File Management**                | Upload, remove, or fetch server files directly through Discord.                          | ❌     |
+| **Activity Logs**                  | View historical panel-side actions through Discord for audit/logging purposes.           | 🚧     |
 
-### 🔑 Status Key
-- ✅ **Complete** – Feature is fully implemented and working.
-- 🚧 **In Progress** – Feature is currently being developed.
-- ❌ **Planned** – Feature is planned but not yet started.
----
+#### Status Legend
+- ✅ **Complete** – Fully implemented and tested
+- 🚧 **In Progress** – Feature is under development
+- ❌ **Planned** – Not yet implemented
 
-## 🧙 Prerequisites
+--- 
 
-Before embarking on your quest, make sure you have:
-
-- **Python 3.12 or later**  
-  Download from [python.org](https://www.python.org/downloads/).  
-- **Pip**  
-  Usually included with Python, though can be checked with: `pip --version`
-- **A Discord Bot Token**  
-  Create your bot via the [Discord Developer Portal](https://discord.com/developers/applications) and invite it to your server.  
-- **A BisectHosting Account with access to a Server**  
-  This will provide access to the API, you can create a key [here](https://games.bisecthosting.com/account/api) on the Games Panel.
+## 📎Requirements
 
 ---
 
-## ⚔️ Running Your Own ServerSage
+### 🐍 Python 3.x or Higher
+> 📥 [Click Me for the Python Downloads Page](https://www.python.org/downloads/)
+> > To confirm your version: `python --version`
+---
+
+### 📦 Pip – Python Package Installer
+
+Pip should come bundled with your Python installation. Verify with: `pip --version`
+
+If it's missing, refer to the [official guide](https://pip.pypa.io/en/stable/installation/).
+
+---
+
+### 🤖 Discord Bot Token
+
+You’ll need to register your own bot:
+
+1. Go to the [Discord Developer Portal](https://discord.com/developers/applications)
+2. Create a new application
+3. Generate a **Bot Token**, save this for later
+4. Enable Message Intents
+
+---
+
+### 🎮 BisectHosting API Access
+
+ServerSage connects with the [ServerSpawnAPI](https://games.bisecthosting.com/) to control your servers.
+1. Log into your Games Panel account
+2. Navigate to **Account → API**
+3. Create a new API key
+4. Use this key during first-time configuration of the bot
+> 🔐 Keep your API key private. It provides access to all associated servers under your account.
+
+---
+
+
+## 🚀 Setup Instructions
 
 1. **Clone the Repository**
 
@@ -49,51 +78,53 @@ Before embarking on your quest, make sure you have:
     cd serversage
     ```
 
-2. **Install Dependencies**
+2. **Install Python Dependencies**
 
     ```bash
     pip install -r requirements.txt
     ```
 
-3. **Spawn the Sage!**
+3. **Start the Bot**
 
     ```bash
     python bot.py
     ```
 
-    > **Note:** If `config.yaml` does not exist, the bot will prompt you to create one automatically. No prior configuration is necessary.
-    It is recommended to enter *all* Servers accessible via your API Token on Setup, and setting any you don't want managed to hide on Setup.
----
-
-## 📜 Command Usage
-
-| Command        | Usage                                | Description                                                |
-|----------------|--------------------------------------|------------------------------------------------------------|
-| Start a Server | `!start <server_index>`              | Starts the specified server                                |
-| Stop a Server  | `!stop <server_index>`               | Stops the specified server.                                |
-| Restart Server | `!restart <server_index>`            | Restarts the specified server.                             |
-| Kill a Server  | `!kill <server_index>`               | Force kills the specified server.                          |
-| List Servers   | `!list`                              | Lists all accessible servers with their status.            |
-| View Stats     | `!stats <server_index>`              | Shows resource usage stats (CPU, RAM, Disk) for the server. |
-| Send a Command | `!command <server_index> "<command>"` | Sends the defined Command to the server Console            |
+    > On first run, `config.yaml` will be generated via an interactive prompt. You’ll be asked to supply your API key and set up accessible servers. You can configure hidden servers at this stage as well.
 
 ---
 
-## 🛠️ Contributing
+## 📖 Command Reference
 
-Contributions are very welcome! Feel free to submit pull requests or open issues for discussion and feature requests.
+| Command        | Usage                                 | Description                                               |
+|----------------|---------------------------------------|-----------------------------------------------------------|
+| Start Server   | `!start <server_index>`               | Starts a selected server                                  |
+| Stop Server    | `!stop <server_index>`                | Gracefully shuts down a server                            |
+| Restart Server | `!restart <server_index>`             | Restarts the selected server                              |
+| Kill Server    | `!kill <server_index>`                | Force kills the server (immediate shutdown)               |
+| List Servers   | `!list`                               | Lists all accessible servers and their current status     |
+| View Stats     | `!stats <server_index>`               | Shows CPU, memory, and disk usage for the server          |
+| Run Command    | `!command <server_index> "<command>"` | Executes a command on the server console                  |
 
 ---
 
-## ⚖️ License
+## 🤝 Contributing
 
-This project is licensed under a modified MIT License with a **no commercial use** clause.
-You are free to use, copy, modify, and distribute this software **for personal, non-commercial purposes only**.
-**Commercial use or selling of this software is strictly prohibited without explicit permission.**
->See the [LICENSE](LICENSE) file for full details.
+Contributions, suggestions, and feature requests are welcome. Feel free to open an issue or submit a pull request.
 
 ---
 
-## 📞 Support
+## ⚠️ License
 
-Encountered issues or have questions? Reach out via the GitHub repository's **Issues** section. Your feedback helps ServerSage grow stronger!
+This project uses a **modified MIT License** with a **non-commercial use clause**.
+
+- ✅ Personal use: Allowed
+- ❌ Commercial use or resale: Prohibited without written permission
+
+See the [LICENSE](LICENSE) file for full terms.
+
+---
+
+## 🧩 Support & Feedback
+
+Need help? Open a ticket via GitHub [Issues](https://github.com/ImKringle/ServerSage/issues) or start a discussion. Your input helps guide future improvements.

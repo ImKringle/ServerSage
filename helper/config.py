@@ -16,28 +16,57 @@ def convert_keys_to_str(obj):
     else:
         return obj
 
-def save_config(config, path="config.yaml"):
-    config_to_dump = convert_keys_to_str(config)
-    yaml_str = yaml.dump(
-        config_to_dump,
-        Dumper=yaml.SafeDumper,
-        sort_keys=False,
-        allow_unicode=True,
-        default_flow_style=False,
-    )
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(yaml_str)
+def save_config(
+    *,
+    bot=None,
+    config=None,
+    updates: dict | None = None,
+    path: str = "config.yaml"
+):
+    """
+    Save a config dictionary or a bot's config to a YAML file,
+    optionally applying updates before saving.
+    """
+    if bot:
+        cfg = bot.config
+        if updates:
+            for section, values in updates.items():
+                if not isinstance(values, dict):
+                    continue
+                if section not in cfg or not isinstance(cfg[section], dict):
+                    cfg[section] = {}
+                cfg[section].update(values)
+        if hasattr(bot, "panel_config"):
+            cfg["panel"] = bot.panel_config
+    elif config is not None:
+        cfg = config
+    else:
+        raise ValueError("Must provide either 'bot' or 'config' parameter")
+    config_to_dump = convert_keys_to_str(cfg)
+    try:
+        yaml_str = yaml.dump(
+            config_to_dump,
+            Dumper=yaml.SafeDumper,
+            sort_keys=False,
+            allow_unicode=True,
+            default_flow_style=False,
+        )
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(yaml_str)
+        logger.info(f"Configuration saved successfully to {path}")
+    except Exception as e:
+        logger.error(f"Failed to save config: {e}")
 
 def create_config():
     config = {
         "discord": {
-            "bot_token": prompt_input("Enter your Discord bot token:", env_var="DISCORD_TOKEN"),
-            "control_channel": prompt_input("Enter the channel ID of the Server Channel where commands should be accepted (Discord):", env_var="DISCORD_CHANNEL"),
-            "stats_channel": prompt_input("Enter the channel ID where Resource Stats / Uptime should be sent (Discord):", env_var="RESOURCE_STATS_CHANNEL"),
+            "bot_token": prompt_input("Enter your Discord bot token:"),
+            "control_channel": prompt_input("Enter the channel ID of the Server Channel where commands should be accepted (Discord): "),
+            "stats_channel": prompt_input("Enter the channel ID where Resource Stats / Uptime should be sent (Discord): "),
             "stats_message_id": ""
         },
         "panel": {
-            "APIKey": prompt_input("Enter your panel API key:", env_var="PANEL_API_KEY"),
+            "APIKey": prompt_input("Enter your panel API key: "),
             "servers": {}
         }
     }
@@ -60,7 +89,7 @@ def create_config():
         }
         index += 1
 
-    save_config(config)
+    save_config(config=config, path="config.yaml")
     logger.info("Config file 'config.yaml' created.")
 
 def validate_config(config):

@@ -1,7 +1,8 @@
 from discord.ext import commands, tasks
-import yaml
 import discord
 from helper.logger import logger
+from helper.utilities import is_server_hidden
+from helper.config import save_config
 
 def create_bar(percent: float, size: int = 15) -> str:
     if percent < 0:
@@ -55,74 +56,57 @@ def format_server_stats(server_name: str,
         ""
     ])
 
+
+def extract_resource_data(limits: dict, resources: dict) -> dict:
+    mem_limit_mb = limits.get("memory", 0)
+    mem_limit_gb = mem_limit_mb / 1024 if mem_limit_mb else 0
+    cpu_limit = limits.get("cpu", 0)
+    disk_limit_mb = limits.get("disk", 0)
+    disk_limit_gb = disk_limit_mb / 1024 if disk_limit_mb else 0
+
+    mem_used_gb = resources.get("memory_bytes", 0) / (1024 ** 3)
+    cpu_used_pct = resources.get("cpu_absolute", 0)
+    disk_used_gb = resources.get("disk_bytes", 0) / (1024 ** 3)
+    uptime_ms = resources.get("uptime", 0)
+    uptime_seconds = uptime_ms / 1000
+
+    mem_pct = (mem_used_gb / mem_limit_gb) * 100 if mem_limit_gb else 0
+    if cpu_limit > 0:
+        cpu_pct = (cpu_used_pct / cpu_limit) * 100
+    else:
+        cpu_pct = cpu_used_pct
+    cpu_pct = min(cpu_pct, 100)
+
+    if disk_limit_gb > 0:
+        disk_pct = (disk_used_gb / disk_limit_gb) * 100
+    else:
+        disk_pct = (disk_used_gb / (disk_used_gb * 10 or 1)) * 100
+
+    return {
+        "mem_used_gb": mem_used_gb,
+        "mem_pct": mem_pct,
+        "cpu_used_pct": cpu_used_pct,
+        "cpu_pct": cpu_pct,
+        "disk_used_gb": disk_used_gb,
+        "disk_pct": disk_pct,
+        "uptime_seconds": uptime_seconds
+    }
+
+
 class Resources(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.api_manager = bot.api_manager
         self.panel_config = bot.panel_config
-        self.control_channel = bot.config.get("discord", {}).get("control_channel") or bot.control_channel
+        self.control_channel = bot.control_channel
         if not self.control_channel:
             raise logger.critical("Control channel not configured anywhere! Startup will fail!")
-        self.stats_channel_id = bot.config.get("discord", {}).get("stats_channel") or bot.control_channel
+        self.stats_channel_id = bot.config.get("discord", {}).get("stats_channel") or bot.stats_channel
         self.stats_message_id = bot.config.get("stats_message_id") or None
         self.stats_task.start()
 
-    def is_server_hidden(self, server_id: str) -> bool:
-        servers = self.bot.panel_config.get("servers", {})
-        for s in servers.values():
-            if s.get("id", "").lower() == server_id.lower():
-                return s.get("hide", False)
-        return False
-
     def cog_unload(self):
         self.stats_task.cancel()
-
-    async def save_config(self):
-        if "discord" not in self.bot.config:
-            self.bot.config["discord"] = {}
-        self.bot.config["discord"]["stats_message_id"] = self.stats_message_id
-        self.bot.config["panel"] = self.bot.panel_config
-        try:
-            with open("config.yaml", "w") as f:
-                yaml.dump(self.bot.config, f, sort_keys=False)
-            logger.info("Config saved with updated stats_message_id")
-        except Exception as e:
-            logger.error(f"Failed to save config: {e}")
-
-    def extract_resource_data(self, limits: dict, resources: dict) -> dict:
-        mem_limit_mb = limits.get("memory", 0)
-        mem_limit_gb = mem_limit_mb / 1024 if mem_limit_mb else 0
-        cpu_limit = limits.get("cpu", 0)
-        disk_limit_mb = limits.get("disk", 0)
-        disk_limit_gb = disk_limit_mb / 1024 if disk_limit_mb else 0
-
-        mem_used_gb = resources.get("memory_bytes", 0) / (1024 ** 3)
-        cpu_used_pct = resources.get("cpu_absolute", 0)
-        disk_used_gb = resources.get("disk_bytes", 0) / (1024 ** 3)
-        uptime_ms = resources.get("uptime", 0)
-        uptime_seconds = uptime_ms / 1000
-
-        mem_pct = (mem_used_gb / mem_limit_gb) * 100 if mem_limit_gb else 0
-        if cpu_limit > 0:
-            cpu_pct = (cpu_used_pct / cpu_limit) * 100
-        else:
-            cpu_pct = cpu_used_pct
-        cpu_pct = min(cpu_pct, 100)
-
-        if disk_limit_gb > 0:
-            disk_pct = (disk_used_gb / disk_limit_gb) * 100
-        else:
-            disk_pct = (disk_used_gb / (disk_used_gb * 10 or 1)) * 100
-
-        return {
-            "mem_used_gb": mem_used_gb,
-            "mem_pct": mem_pct,
-            "cpu_used_pct": cpu_used_pct,
-            "cpu_pct": cpu_pct,
-            "disk_used_gb": disk_used_gb,
-            "disk_pct": disk_pct,
-            "uptime_seconds": uptime_seconds
-        }
 
     @tasks.loop(seconds=15.0)
     async def stats_task(self):
@@ -174,7 +158,7 @@ class Resources(commands.Cog):
                     )
                     continue
 
-                stats = self.extract_resource_data(limits_data, resource_data)
+                stats = extract_resource_data(limits_data, resource_data)
                 uptime_str = format_uptime(stats["uptime_seconds"])
                 combined_text.append(
                     format_server_stats(
@@ -205,14 +189,14 @@ class Resources(commands.Cog):
             except discord.NotFound:
                 msg = await channel.send(embed=embed)
                 self.stats_message_id = str(msg.id)
-                await self.save_config()
+                save_config(bot=self.bot, updates={"discord": {"stats_message_id": self.stats_message_id}})
                 logger.info("Stats message missing, sent new combined message and updated config.")
             except Exception as e:
                 logger.error(f"Error editing combined stats message: {e}")
         else:
             msg = await channel.send(embed=embed)
             self.stats_message_id = str(msg.id)
-            await self.save_config()
+            await save_config(bot=self.bot, updates={"discord": {"stats_message_id": self.stats_message_id}})
             logger.info("Sent initial combined stats message and saved message ID.")
 
     @commands.command(name="stats")
@@ -236,7 +220,7 @@ class Resources(commands.Cog):
             await ctx.send(f"No server found matching '{query}'. Please check the ID or name.")
             return
 
-        if self.is_server_hidden(server_id):
+        if is_server_hidden(self.panel_config, server_id):
             await ctx.send(f"❌ Server `{query}` is hidden and cannot be viewed via commands.")
             return
 
@@ -257,7 +241,7 @@ class Resources(commands.Cog):
                     f"❌ **{server_name}** is currently offline. Use `!start {server_id}` to power it on.")
                 return
 
-            stats = self.extract_resource_data(limits_data, resource_data)
+            stats = extract_resource_data(limits_data, resource_data)
             uptime_str = format_uptime(stats["uptime_seconds"])
 
             sections = [
