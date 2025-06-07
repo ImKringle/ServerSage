@@ -1,31 +1,28 @@
-# ServerSage - Discord-Based Game Server Management (Self-Hosted Only)
+# ServerSage — Discord Game Server Manager  
+**ServerSage** is a self-hosted Discord bot for managing game servers via the [BisectHosting ServerSpawn API](https://games.bisecthosting.com/docs). Control your servers securely from Discord.  
+> ⚠️ This bot is only intended for SelfHosted use. There is not currently a build supporting otherwise.
 
-**ServerSage** is a self-hosted Discord bot built for managing game servers via the [BisectHosting ServerSpawn API](https://games.bisecthosting.com/docs). It provides a secure, centralized control interface directly within Discord — ideal for individuals or small teams who need remote server control without relying on web panels.
-
-> ⚠️ This project is designed for self-hosted environments only. It is not available as a public or hosted bot instance.
+<img src="assets/banner.jpeg" alt="ServerSage" width="720" />
 
 ---
 
-## 🔧 Core Features
- 
-| Feature                            | Description                                                                              | Status |
-|------------------------------------|------------------------------------------------------------------------------------------|--------|
-| **Power Actions**                  | Start, stop, restart, or kill servers using Discord commands.                            | ✅     |
-| **Server Listing**                 | View all accessible servers and their statuses.                                          | ✅     |
-| **Resource Statistics**            | View real-time CPU, RAM, and disk usage.                                                 | ✅     |
-| **Remote Command Execution**       | Send commands to a server's console directly through Discord.                            | ✅     |
-| **Hidable Servers**                | Exclude specific servers from bot visibility using the `hide` flag during setup.         | ✅     |
-| **Startup Tab Management**         | Modify Startup tab values remotely via Discord.                                          | ❌     |
-| **Player List Management**         | Automatically track connected players and clean up inactive entries.                     | ✅     |
-| **Panel → Discord Announcements**  | Route panel announcements (e.g. outages, game info, etc) to a dedicated Discord channel. | ❌     |
-| **Log File Viewing**               | Auto-detect and display the most recent server logs, or prompt for input if needed.      | 🚧     |
-| **File Management**                | Upload, remove, or fetch server files directly through Discord.                          | ❌     |
-| **Activity Logs**                  | View historical panel-side actions through Discord for audit/logging purposes.           | 🚧     |
+## Features & Command Usage
 
-#### Status Legend
-- ✅ **Complete** – Fully implemented and tested
-- 🚧 **In Progress** – Feature is under development
-- ❌ **Planned** – Not yet implemented
+| Feature                 | Description                                    | Example Command Usage                                |
+|-------------------------|------------------------------------------------|------------------------------------------------------|
+| Power Actions           | Start, stop, restart, kill servers             | `!start 63ce2hd8`                                    |
+| Server Listing          | View servers accessible from the API           | `!list`                                              |
+| Resource Stats          | Real time CPU, RAM, Disk and Uptime statistics | `!stats 63ce2hd8`                                    |
+| Remote Command Exec     | Send commands to the Servers "Console" window  | `!command 63ce2hd8 "status"`                         |
+| Hidable Servers         | Hide servers from bot listing + command use    | Configured via setup                                 |
+| Player List Management  | Track and clear inactive players               | `!playerlist 63ce2hd8` / `!clearplayers 63ce2hd8 7d` |
+| Log Viewing             | View latest or specified server logs           | `!logs 63ce2hd8` / `!logs 63ce2hd8 logs/server.log`  |
+| Steam Query             | Query server status via Steam Query protocol   | `!query 63ce2hd8`                                           |
+| Panel → Discord Announce| Forward panel announcements (🚧)               | —                                                    |
+| Plugin/Mod Management   | Enable/Disable Mods/Plugins (🚧)               | —                                                    |
+| Startup Tab Editing     | Modify Startup Options (⏳)                     | —                                                    |
+| File Management         | Upload/Download Files (⏳)                      | —                                                    |
+| Activity Logs           | Audit panel actions in Discord (⏳)             | —                                                    |
 
 --- 
 
@@ -35,12 +32,12 @@
 
 ### 🐍 Python 3.x or Higher
 > 📥 [Click Me for the Python Downloads Page](https://www.python.org/downloads/)
-> > To confirm your version: `python --version`
+> > To confirm your version: python --version
 ---
 
 ### 📦 Pip – Python Package Installer
 
-Pip should come bundled with your Python installation. Verify with: `pip --version`
+Pip should come bundled with your Python installation. Verify with: pip --version
 
 If it's missing, refer to the [official guide](https://pip.pypa.io/en/stable/installation/).
 
@@ -68,65 +65,33 @@ ServerSage connects with the [ServerSpawnAPI](https://games.bisecthosting.com/) 
 
 ---
 
+## Quick Start
 
-## 🚀 Setup Instructions
+1. **Clone the repository and enter the folder:** `git clone https://github.com/ImKringle/serversage.git && cd serversage`
+2. **Install required Python packages:** `pip install -r requirements.txt`
+3. **Start the bot:** `python bot.py`
 
-1. **Clone the Repository**
-
-    ```bash
-    git clone https://github.com/ImKringle/serversage.git
-    cd serversage
-    ```
-
-2. **Install Python Dependencies**
-
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-3. **Start the Bot**
-
-    ```bash
-    python bot.py
-    ```
-
-    > On first run, `config.yaml` will be generated via an interactive prompt. You’ll be asked to supply your API key and set up accessible servers. You can configure hidden servers at this stage as well.
+> ❗ On first run, an interactive setup will create your `config.yaml`. Avoid manual edits to this file.
 
 ---
 
-## 📖 Command Reference
+## Contributing & Support
 
-| Command                | Usage                                 | Description                                                                             |
-|------------------------|---------------------------------------|-----------------------------------------------------------------------------------------|
-| Start Server           | `!start <server_index>`               | Starts a selected server                                                                |
-| Stop Server            | `!stop <server_index>`                | Gracefully shuts down a server                                                          |
-| Restart Server         | `!restart <server_index>`             | Restarts the selected server                                                            |
-| Kill Server            | `!kill <server_index>`                | Force kills the server (immediate shutdown)                                             |
-| List Servers           | `!list`                               | Lists all accessible servers and their current status                                   |
-| View Stats             | `!stats <server_index>`               | Shows CPU, memory, and disk usage for the server                                        |
-| Run Command            | `!command <server_index> "<command>"` | Executes a command on the server console                                                |
-| Player List            | `!playerlist <server_index>`          | Replies with the current Online Players                                                 |
-| Clear Inactive Players | `!clearplayers <server_index> <time>` | Clears the provided Servers PlayerList of Inactive Players per the provided Time window |
+Contributions, suggestions, bug reports, and support questions are all welcome!
+
+- **Issues:** Report bugs, request features, or ask for help on [GitHub Issues](https://github.com/ImKringle/ServerSage/issues).  
+- **Pull Requests:** Fork, make changes, and submit PRs following existing style and documentation.  
+- **Discussions:** Share ideas, get community support, or brainstorm on [GitHub Discussions](https://github.com/ImKringle/ServerSage/discussions).  
+
+Thank you for helping improve and support ServerSage!
 
 ---
 
-## 🤝 Contributing
+## License
 
-Contributions, suggestions, and feature requests are welcome. Feel free to open an issue or submit a pull request.
+ServerSage is licensed under a **Modified MIT License** with a non-commercial clause:
 
----
+- ✅ **Personal use:** You are free to use, modify, and distribute ServerSage for personal or educational purposes.  
+- ❌ **Commercial use:** Use, sale, or distribution of ServerSage for commercial purposes is **not permitted** without explicit written permission from the project owner.  
 
-## ⚠️ License
-
-This project uses a **modified MIT License** with a **non-commercial use clause**.
-
-- ✅ Personal use: Allowed
-- ❌ Commercial use or resale: Prohibited without written permission
-
-See the [LICENSE](LICENSE) file for full terms.
-
----
-
-## 🧩 Support & Feedback
-
-Need help? Open a ticket via GitHub [Issues](https://github.com/ImKringle/ServerSage/issues) or start a discussion. Your input helps guide future improvements.
+See the full license details in the [LICENSE](LICENSE) file.

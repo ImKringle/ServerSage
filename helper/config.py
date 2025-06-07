@@ -1,5 +1,7 @@
 import yaml
 import os
+import platform
+import subprocess
 from helper.logger import logger
 from helper.input_handler import prompt_input
 
@@ -91,6 +93,13 @@ def create_config():
 
     save_config(config=config, path="config.yaml")
     logger.info("Config file 'config.yaml' created.")
+    try:
+        if platform.system() == "Windows":
+            subprocess.call("cls", shell=True)
+        else:
+            subprocess.call("clear", shell=True)
+    except Exception as e:
+        logger.warning(f"Failed to clear screen: {e}")
 
 def validate_config(config):
     if not isinstance(config, dict):

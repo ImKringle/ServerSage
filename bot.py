@@ -5,10 +5,11 @@ import signal
 from sys import platform
 from helper.api_manager import APIManager
 from helper.config import *
-from helper.utilities import get_client_id
+from helper.utilities import get_client_id, version_check, version_tuple
 import logging
 from helper.logger import logger, print_colored
 
+version = "1.0.4"
 ansi_art = r"""
 ----------------------------------------------------------------------------
   _________                                   _________                      
@@ -18,13 +19,12 @@ ansi_art = r"""
 /_______  /\___  >__|    \_/  \___  >__|    /_______  (____  /\___  / \___  >
         \/     \/                 \/                \/     \//_____/      \/ 
 ----------------------------------------------------------------------------
-                      v1.0.3 - @GH/ImKringle/ServerSage
+                      v{} - @GH/ImKringle/ServerSage
                           ~ Your Trusty Companion ~
 ----------------------------------------------------------------------------
 """
-print(ansi_art)
+print(ansi_art.format(version))
 
-# Load the configuration from the YAML file
 config = load_config()
 if config is None or not validate_config(config):
     logger.info("Invalid or missing config. Creating new config...")
@@ -34,6 +34,18 @@ if config is None or not validate_config(config):
         logger.error("Config creation failed or is invalid. Exiting.")
         exit(1)
 
+update = version_check(version)
+if update:
+    latest_version = update.lstrip("v")
+    if version_tuple(version) < version_tuple(latest_version):
+        logger.warning("A new version is available: %s (you have v%s)", update, version)
+    elif version_tuple(version) > version_tuple(latest_version):
+        logger.warning("You are running a development version (v%s) ahead of latest release %s", version, update)
+    else:
+        logger.info("ServerSage is Up to date!")
+else:
+    logger.info("ServerSage is Up to date!")
+
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
@@ -42,7 +54,14 @@ token = (config['discord']['bot_token'])
 bot.panel_config = config.get("panel", {})
 bot.api_manager = APIManager(bot.panel_config)
 bot.control_channel = bot.config.get("discord", {}).get("control_channel")
+if not bot.control_channel:
+    raise RuntimeError("❌ Control channel not configured! Startup will fail!")
+
 shutdown_event = asyncio.Event()
+cogs = [
+    "players", "power_actions", "list", "resources",
+    "command", "help", "logs", "query"
+]
 
 async def shutdown():
     logger.info("Shutdown initiated...")
@@ -53,9 +72,9 @@ async def shutdown():
 
 async def main():
     bot.api_manager = APIManager(bot.panel_config)
-    for cog in ("players", "power_actions", "list", "resources", "command", "help"):
+    for cog in cogs:
         await bot.load_extension(f"cogs.{cog}")
-        logger.info(f"Loaded {cog}.")
+        logger.info(f"Loaded Cog: {cog}")
     loop = asyncio.get_running_loop()
     if platform != "win32":
         for sig in (signal.SIGINT, signal.SIGTERM):
@@ -72,8 +91,10 @@ async def on_ready():
     logger.info("Bot is online as %s!", bot.user)
     try:
         servers = await bot.api_manager.fetch_all_servers()
-        logger.info("Loaded %s servers from ServerSpawnAPI on Startup:", len(servers))
+        logger.info("Loaded %s server(s) from ServerSpawnAPI on Startup:", len(servers))
         for server in servers:
+            if server.get("hide"):
+                continue
             server_id = server.get("id")
             name = server.get("name", "Unknown")
             print_colored(f"- {name} (ID: {server_id})", logging.INFO)

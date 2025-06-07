@@ -1,10 +1,11 @@
 import logging
+from logging import handlers
 import sys
 import os
 import shutil
 from datetime import datetime
 
-RESET = "\x1b[0m"
+RESET = "\x1b[0m"  # No color (Reset)
 COLOR_MAP = {
     logging.DEBUG: "\x1b[37m",    # White
     logging.INFO: "\x1b[32m",     # Green
@@ -14,7 +15,11 @@ COLOR_MAP = {
 }
 
 MAX_LOG_DIR_SIZE_MB = 100
-LOG_DIR = "Logs"
+MAX_LOG_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB max per log file
+BACKUP_COUNT = 10  # Keep up to 10 rotated files
+
+LOG_DIR = "logs"
+LOG_FILENAME = os.path.join(LOG_DIR, "ServerSage.log")
 
 class ColorFormatter(logging.Formatter):
     def format(self, record):
@@ -45,19 +50,44 @@ def clear_directory(directory):
         except Exception as e:
             print_colored(f"Failed to delete {filepath}: {e}", logging.ERROR)
 
-def setup_logger():
-    log_filename = "ServerSage.log"
+def print_colored(msg, level=logging.INFO):
+    print(f"{COLOR_MAP.get(level, RESET)}{msg}{RESET}")
 
+class TimestampedRotatingFileHandler(handlers.RotatingFileHandler):
+    def doRollover(self):
+        if self.stream:
+            self.stream.close()
+            self.stream = None
+
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        dirname, basename = os.path.split(self.baseFilename)
+        filename_root, ext = os.path.splitext(basename)
+        new_name = os.path.join(dirname, f"{filename_root}-{timestamp}{ext}")
+
+        if os.path.exists(self.baseFilename):
+            os.rename(self.baseFilename, new_name)
+
+        if self.backupCount > 0:
+            files = sorted(
+                f for f in os.listdir(dirname)
+                if f.startswith(filename_root) and f.endswith(ext) and f != basename
+            )
+            files.sort(key=lambda f: os.path.getmtime(os.path.join(dirname, f)), reverse=True)
+
+            for old_file in files[self.backupCount:]:
+                try:
+                    os.remove(os.path.join(dirname, old_file))
+                except Exception:
+                    pass
+        self.mode = 'a'
+        self.stream = self._open()
+
+def setup_logger():
     os.makedirs(LOG_DIR, exist_ok=True)
 
     dir_size_bytes = get_directory_size(LOG_DIR)
     if dir_size_bytes > MAX_LOG_DIR_SIZE_MB * 1024 * 1024:
         clear_directory(LOG_DIR)
-
-    if os.path.exists(log_filename):
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        new_name = os.path.join(LOG_DIR, f"ServerSage_{timestamp}.log")
-        shutil.move(log_filename, new_name)
 
     logger = logging.getLogger("serversage")
     logger.setLevel(logging.INFO)
@@ -68,14 +98,20 @@ def setup_logger():
     console_handler.setFormatter(console_formatter)
     logger.addHandler(console_handler)
 
-    file_handler = logging.FileHandler(log_filename)
+    file_handler = TimestampedRotatingFileHandler(
+        LOG_FILENAME,
+        maxBytes=MAX_LOG_FILE_SIZE_BYTES,
+        backupCount=BACKUP_COUNT,
+        encoding='utf-8'
+    )
     file_formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s')
     file_handler.setFormatter(file_formatter)
+
+    if os.path.exists(LOG_FILENAME) and os.path.getsize(LOG_FILENAME) > 0:
+        file_handler.doRollover()
+
     logger.addHandler(file_handler)
 
     return logger
-
-def print_colored(msg, level=logging.INFO):
-    print(f"{COLOR_MAP.get(level, RESET)}{msg}{RESET}")
 
 logger = setup_logger()

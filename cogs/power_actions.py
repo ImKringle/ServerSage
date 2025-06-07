@@ -1,6 +1,6 @@
 from discord.ext import commands
 from helper.logger import logger
-from helper.utilities import resolve_server_id, is_server_hidden
+from helper.utilities import validate_command_context
 
 class ServerControl(commands.Cog):
     def __init__(self, bot):
@@ -8,27 +8,26 @@ class ServerControl(commands.Cog):
         self.api_manager = bot.api_manager
         self.panel_config = bot.panel_config
         self.control_channel = bot.control_channel
-        if not self.control_channel:
-            raise logger.critical("Control channel not configured anywhere! Startup will fail!")
 
     async def _send_power_action(self, ctx, server_input: str, action: str):
         """
         Sends the resolved Server ID a Power Action
         """
-        if str(ctx.channel.id) != str(self.control_channel):
-            await ctx.send(f"⚠️ ServerSage Commands can only be used in the designated control channel. Ask someone with permission!")
+        is_valid, server_id, server_name, error_message = await validate_command_context(
+            ctx, self.panel_config, self.control_channel, server_input
+        )
+        if not is_valid:
+            await ctx.send(error_message)
             return
-        server_id = resolve_server_id(self.panel_config, server_input)
-        if is_server_hidden(self.panel_config, server_id):
-            await ctx.send(f"❌ Server `{server_id}` is hidden and cannot be controlled via commands.")
-            return
+
         url = f"{self.api_manager.base_url}/servers/{server_id}/power"
         payload = {"signal": action}
         try:
             result = await self.api_manager.make_request(url, method='POST', payload=payload)
-            display_name = server_input if server_id == server_input else f"{server_input} ({server_id})"
+            display_name = server_name or server_id
             await ctx.send(
-                f"✅ `{action}` signal sent to `{display_name}`.\nResponse: `{result.get('message', result)}`")
+                f"✅ `{action}` signal sent to `{display_name}`.\nResponse: `{result.get('message', result)}`"
+            )
             logger.info("Power Action: %s sent to %s.", action, display_name)
         except Exception as e:
             logger.error("Failed to send Action: %s sent to %s. Error: %s", action, server_input, e)

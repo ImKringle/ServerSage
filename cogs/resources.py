@@ -1,7 +1,7 @@
 from discord.ext import commands, tasks
 import discord
 from helper.logger import logger
-from helper.utilities import is_server_hidden
+from helper.utilities import validate_command_context
 from helper.config import save_config
 
 def create_bar(percent: float, size: int = 15) -> str:
@@ -99,8 +99,6 @@ class Resources(commands.Cog):
         self.api_manager = bot.api_manager
         self.panel_config = bot.panel_config
         self.control_channel = bot.control_channel
-        if not self.control_channel:
-            raise logger.critical("Control channel not configured anywhere! Startup will fail!")
         self.stats_channel_id = bot.config.get("discord", {}).get("stats_channel") or bot.stats_channel
         self.stats_message_id = bot.config.get("stats_message_id") or None
         self.stats_task.start()
@@ -196,32 +194,19 @@ class Resources(commands.Cog):
         else:
             msg = await channel.send(embed=embed)
             self.stats_message_id = str(msg.id)
-            await save_config(bot=self.bot, updates={"discord": {"stats_message_id": self.stats_message_id}})
+            save_config(bot=self.bot, updates={"discord": {"stats_message_id": self.stats_message_id}})
             logger.info("Sent initial combined stats message and saved message ID.")
 
     @commands.command(name="stats")
     async def stats(self, ctx, *, query: str):
-        if str(ctx.channel.id) != str(self.control_channel):
-            await ctx.send("⚠️ ServerSage Commands can only be used in the designated control channel.")
-            return
-
-        servers = self.panel_config.get("servers", {})
-        server_id = None
-        server_name = None
-        query_lower = query.lower()
-
-        for key, info in servers.items():
-            if info.get("id", "").lower() == query_lower or info.get("name", "").lower() == query_lower:
-                server_id = info.get("id")
-                server_name = info.get("name")
-                break
-
-        if not server_id:
-            await ctx.send(f"No server found matching '{query}'. Please check the ID or name.")
-            return
-
-        if is_server_hidden(self.panel_config, server_id):
-            await ctx.send(f"❌ Server `{query}` is hidden and cannot be viewed via commands.")
+        """
+        Grabs real time CPU, RAM, Disk usage data and Uptime stats for a server
+        """
+        is_valid, server_id, server_name, error_message = await validate_command_context(
+            ctx, self.panel_config, self.control_channel, query
+        )
+        if not is_valid:
+            await ctx.send(error_message)
             return
 
         try:

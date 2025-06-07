@@ -1,5 +1,6 @@
 from typing import Any
 import aiohttp
+import requests
 from helper.logger import logger
 
 def is_server_hidden(panel_config, server_id: str) -> bool:
@@ -9,23 +10,68 @@ def is_server_hidden(panel_config, server_id: str) -> bool:
             return s.get("hide", False)
     return False
 
-def resolve_server_id(panel_config, input_str: str) -> str:
+def version_tuple(v: str):
+    return tuple(int(x) for x in v.split("."))
+
+
+def version_check(current_version: str) -> str | None:
     """
-    Attempts to resolve a server name or ID (case-insensitive) to its server ID.
-    If input matches a server name or ID in the config, returns the server ID.
-    Otherwise, returns the input unchanged.
+    Checks the latest release tag from the ServerSage GitHub repo
+    Returns:
+        - The latest version string if current_version is not an exact match to latest release (e.g. "v1.0.3")
+        - None if current version exactly matches latest release or no releases found
     """
-    input_str = input_str.strip().lower()
+
+    url = "https://api.github.com/repos/ImKringle/ServerSage/releases/latest"
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        latest_tag = data.get("tag_name")
+        if not latest_tag:
+            return None
+        latest_version = latest_tag.lstrip("v")
+        if current_version != latest_version:
+            return latest_tag
+        return None
+    except Exception as e:
+        print(f"Error checking GitHub releases: {e}")
+        return None
+
+def resolve_server(panel_config, input_str: str) -> tuple[str, str] | None:
+    """
+    Attempts to resolve a server name or ID (case-insensitive).
+    Returns a tuple of (server_id, server_name) if found, else None.
+    """
+    input_clean = input_str.strip().lower()
     servers = panel_config.get("servers", {})
 
     for _, server_info in servers.items():
+        server_id = server_info.get("id", "")
+        if input_clean == server_id.lower():
+            return server_id, server_info.get("name", "")
+
+    for _, server_info in servers.items():
         server_name = server_info.get("name", "").lower()
-        server_id = server_info.get("id", "").lower()
+        if input_clean in server_name:
+            return server_info.get("id", ""), server_info.get("name", "")
 
-        if input_str == server_name or input_str == server_id:
-            return server_info.get("id", input_str)
+    return None
 
-    return input_str
+async def validate_command_context(ctx, panel_config, control_channel, server_input):
+    if str(ctx.channel.id) != str(control_channel):
+        return False, None, None, "⚠️ Commands can only be used in the designated control channel."
+
+    resolved = resolve_server(panel_config, server_input)
+    if not resolved:
+        return False, None, None, f"No server found matching '{server_input}'. Please check the ID or name."
+
+    server_id, server_name = resolved
+
+    if is_server_hidden(panel_config, server_id):
+        return False, None, None, f"❌ Server '{server_input}' is hidden and cannot be viewed."
+
+    return True, server_id, server_name, None
 
 async def get_client_id(bot_token: str) -> Any | None:
     url = "https://discord.com/api/v10/users/@me"
