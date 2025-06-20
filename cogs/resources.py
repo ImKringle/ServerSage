@@ -99,9 +99,11 @@ class Resources(commands.Cog):
         self.api_manager = bot.api_manager
         self.panel_config = bot.panel_config
         self.control_channel = bot.control_channel
-        self.do_resource_loop = bot.config.get("discord", {}).get("doResourceLoop", True)
+        raw_loop_value = bot.config.get("bot", {}).get("doResourceLoop", False)
+        self.do_resource_loop = str(raw_loop_value).lower() == "true"
         self.stats_channel_id = bot.config.get("discord", {}).get("stats_channel") or None
         self.stats_message_id = bot.config.get("discord", {}).get("stats_message_id") or None
+        logger.info(f"Resource Loop enabled: {self.do_resource_loop}")
         if self.do_resource_loop:
             self.stats_task.start()
         else:

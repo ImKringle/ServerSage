@@ -29,9 +29,13 @@ class Announcements(commands.Cog):
         self.api_manager = bot.api_manager
         self.panel_config = bot.panel_config
         self.control_channel = bot.control_channel
-        self.do_announcement_loop = bot.config.get("discord", {}).get("doAnnouncementLoop", True)
-        self.announcement_channel_id = bot.config.get("discord", {}).get("announcement_channel") or bot.control_channel
+        raw_loop_value = bot.config.get("bot", {}).get("doAnnouncementLoop", False)
+        self.do_announcement_loop = str(raw_loop_value).lower() == "true"
+        self.announcement_channel_id = (
+            bot.config.get("discord", {}).get("announcement_channel") or self.control_channel
+        )
         self.seen_announcement_ids = set()
+        logger.info(f"Announcement Loop enabled: {self.do_announcement_loop}")
         if self.do_announcement_loop:
             self.announcement_task.start()
         else:
