@@ -1,6 +1,6 @@
 from discord.ext import commands
 import discord
-from helper.steam_query import query_steam_server
+from helper.steam_handler import query_server
 from helper.utilities import validate_command_context
 
 class QuerySteam(commands.Cog):
@@ -24,7 +24,7 @@ class QuerySteam(commands.Cog):
 
         await ctx.send(f"📡 Querying `{server_name}` via Steam...")
 
-        result = await query_steam_server(self.api_manager, self.panel_config, server_input)
+        result = await query_server(self.api_manager, self.panel_config, server_input)
         if not result:
             await ctx.send(f"❌ Failed to query server `{server_name}` or no data available.")
             return

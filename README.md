@@ -8,21 +8,21 @@
 
 ## Features & Command Usage
 
-| Feature                 | Description                                    | Example Command Usage                                |
-|-------------------------|------------------------------------------------|------------------------------------------------------|
-| Power Actions           | Start, stop, restart, kill servers             | `!start 63ce2hd8`                                    |
-| Server Listing          | View servers accessible from the API           | `!list`                                              |
-| Resource Stats          | Real time CPU, RAM, Disk and Uptime statistics | `!stats 63ce2hd8`                                    |
-| Remote Command Exec     | Send commands to the Servers "Console" window  | `!command 63ce2hd8 "status"`                         |
-| Hidable Servers         | Hide servers from bot listing + command use    | Configured via setup                                 |
-| Player List Management  | Track and clear inactive players               | `!playerlist 63ce2hd8` / `!clearplayers 63ce2hd8 7d` |
-| Log Viewing             | View latest or specified server logs           | `!logs 63ce2hd8` / `!logs 63ce2hd8 logs/server.log`  |
-| Steam Query             | Query server status via Steam Query protocol   | `!query 63ce2hd8`                                           |
-| Panel → Discord Announce| Forward panel announcements (🚧)               | —                                                    |
-| Plugin/Mod Management   | Enable/Disable Mods/Plugins (🚧)               | —                                                    |
-| Startup Tab Editing     | Modify Startup Options (⏳)                     | —                                                    |
-| File Management         | Upload/Download Files (⏳)                      | —                                                    |
-| Activity Logs           | Audit panel actions in Discord (⏳)             | —                                                    |
+| Feature                 | Description                                    | Example Command Usage                                   |
+|-------------------------|------------------------------------------------|---------------------------------------------------------|
+| Power Actions           | Start, stop, restart, kill servers             | `!start 63ce2hd8`                                       |
+| Server Listing          | View servers accessible from the API           | `!list`                                                 |
+| Resource Stats          | Real time CPU, RAM, Disk and Uptime statistics | `!stats 63ce2hd8`                                       |
+| Remote Command Exec     | Send commands to the Servers "Console" window  | `!command 63ce2hd8 "status"`                            |
+| Hidable Servers         | Hide servers from bot listing + command use    | Configured via setup                                    |
+| Player List Management  | Track and clear inactive players               | `!playerlist 63ce2hd8` / `!clearplayers 63ce2hd8 7d`    |
+| Log Viewing             | View latest or specified server logs           | `!logs 63ce2hd8` / `!logs 63ce2hd8 logs/server.log`     |
+| Steam Query             | Query server status via Steam Query protocol   | `!query 63ce2hd8`                                       |
+| Panel → Discord Announce| Forward panel announcements               | `!announcements 88d78549`                               |
+| Plugin/Mod Management   | Enable/Disable Mods/Plugins               | `!mods-list 88d78549` / `!mods-manage enable GTNH.jar 88d78549` |
+| Startup Tab Editing     | Modify Startup Options (⏳)                     | —                                                       |
+| File Management         | Upload/Download Files (⏳)                      | —                                                       |
+| Activity Logs           | Audit panel actions in Discord (⏳)             | —                                                       |
 
 --- 
 

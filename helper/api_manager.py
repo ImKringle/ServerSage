@@ -79,17 +79,18 @@ class APIManager:
             logger.error("Rate limit hit (429). Blocking API calls for 60 seconds.")
             raise Exception("API rate limit exceeded (429). Pausing requests for 60 seconds.")
 
+        if status == 504:
+            self._rate_limited_until = time.monotonic() + 600
+            logger.error("CloudFlare Timeout (504). Blocking API calls for 10 minutes.")
+            raise Exception("API gateway timeout (504). Pausing requests for 10 minutes.")
+
         if status not in (200, 204, 201):
             raise Exception(f"API request failed: {status} - {text}")
         if status == 204 or response.content_length == 0:
             return {"message": "Request completed successfully."}
         return await response.json()
 
-    async def make_request(self, url, method='GET', payload=None):
-        """
-        Make an asynchronous HTTP request to the API.
-        Supports GET, POST, and DELETE methods, respects rate limits, and returns JSON data.
-        """
+    async def make_request(self, url, method='GET', payload=None, params=None, json=None):
         session = await self._get_session()
         now = time.monotonic()
         if now < self._rate_limited_until:
@@ -97,14 +98,18 @@ class APIManager:
             logger.warning(f"API requests are rate limited. Blocking calls for {wait_time:.1f} more seconds.")
             raise Exception(f"API rate limited. Please wait {wait_time:.1f} seconds before retrying.")
         try:
-            if method.upper() == 'GET':
-                async with session.get(url) as response:
+            method_upper = method.upper()
+            if method_upper == 'GET':
+                async with session.get(url, params=params) as response:
                     return await self._handle_response(response, url)
-            elif method.upper() == 'POST':
-                async with session.post(url, json=payload) as response:
+            elif method_upper == 'POST':
+                async with session.post(url, json=json, data=payload) as response:
                     return await self._handle_response(response, url)
-            elif method.upper() == 'DELETE':
-                async with session.delete(url) as response:
+            elif method_upper == 'DELETE':
+                async with session.delete(url, params=params) as response:
+                    return await self._handle_response(response, url)
+            elif method_upper == 'PUT':
+                async with session.put(url, json=json, data=payload) as response:
                     return await self._handle_response(response, url)
             else:
                 raise ValueError("Unsupported HTTP method.")

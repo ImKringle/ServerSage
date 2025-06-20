@@ -9,7 +9,7 @@ from helper.utilities import get_client_id, version_check, version_tuple
 import logging
 from helper.logger import logger, print_colored
 
-version = "1.0.4"
+version = "1.0.5"
 ansi_art = r"""
 ----------------------------------------------------------------------------
   _________                                   _________                      
@@ -54,17 +54,21 @@ token = (config['discord']['bot_token'])
 bot.panel_config = config.get("panel", {})
 bot.api_manager = APIManager(bot.panel_config)
 bot.control_channel = bot.config.get("discord", {}).get("control_channel")
-if not bot.control_channel:
-    raise RuntimeError("❌ Control channel not configured! Startup will fail!")
-
 shutdown_event = asyncio.Event()
 cogs = [
     "players", "power_actions", "list", "resources",
-    "command", "help", "logs", "query"
+    "command", "help", "logs", "query", "announcements",
+    "mods"
 ]
 
 async def shutdown():
     logger.info("Shutdown initiated...")
+    for cog in list(bot.extensions):
+        try:
+            await bot.unload_extension(cog)
+            logger.info(f"Unloaded Cog: {cog}")
+        except Exception as e:
+            logger.error(f"Failed to unload cog {cog}: {e}")
     await bot.api_manager.close()
     await bot.close()
     shutdown_event.set()
@@ -72,6 +76,17 @@ async def shutdown():
 
 async def main():
     bot.api_manager = APIManager(bot.panel_config)
+    try:
+        servers = await bot.api_manager.fetch_all_servers()
+        logger.info("Loaded %s server(s) from ServerSpawnAPI on Startup:", len(servers))
+        for server in servers:
+            if server.get("hide"):
+                continue
+            server_id = server.get("id")
+            name = server.get("name", "Unknown")
+            print_colored(f"- {name} (ID: {server_id})", logging.INFO)
+    except Exception as e:
+        logger.error("Error loading servers from API on startup: %s!", e)
     for cog in cogs:
         await bot.load_extension(f"cogs.{cog}")
         logger.info(f"Loaded Cog: {cog}")
@@ -89,17 +104,6 @@ async def main():
 @bot.event
 async def on_ready():
     logger.info("Bot is online as %s!", bot.user)
-    try:
-        servers = await bot.api_manager.fetch_all_servers()
-        logger.info("Loaded %s server(s) from ServerSpawnAPI on Startup:", len(servers))
-        for server in servers:
-            if server.get("hide"):
-                continue
-            server_id = server.get("id")
-            name = server.get("name", "Unknown")
-            print_colored(f"- {name} (ID: {server_id})", logging.INFO)
-    except Exception as e:
-        logger.error("Error loading servers from API on startup: %s!", e)
     logger.info("Successfully finished startup")
     client_id = await get_client_id(token)
     if client_id:

@@ -60,18 +60,37 @@ def save_config(
         logger.error(f"Failed to save config: {e}")
 
 def create_config():
+    logger.info("Config Creation has Started!")
+    do_resource_loop = (prompt_input("Enable Resource Stats Loop? (yes/no) [yes]:") or "yes").strip().lower() in ("yes", "y")
+    do_announcement_loop = (prompt_input("Enable Announcement Loop? (yes/no) [yes]:") or "yes").strip().lower() in ("yes", "y")
     config = {
+        "bot": {
+            "doResourceLoop": do_resource_loop,
+            "doAnnouncementLoop": do_announcement_loop
+        },
         "discord": {
             "bot_token": prompt_input("Enter your Discord bot token:"),
-            "control_channel": prompt_input("Enter the channel ID of the Server Channel where commands should be accepted (Discord): "),
-            "stats_channel": prompt_input("Enter the channel ID where Resource Stats / Uptime should be sent (Discord): "),
-            "stats_message_id": ""
+            "control_channel": prompt_input("Enter the ID of the Server Channel where commands should be accepted: ")
         },
         "panel": {
             "APIKey": prompt_input("Enter your panel API key: "),
             "servers": {}
         }
     }
+
+    if do_resource_loop:
+        config["discord"]["stats_channel"] = prompt_input(
+            "Enter the channel ID where Resource Stats / Uptime should be sent (Discord): ")
+        config["discord"]["stats_message_id"] = ""
+    else:
+        config["discord"]["stats_channel"] = None
+        config["discord"]["stats_message_id"] = None
+
+    if do_announcement_loop:
+        config["discord"]["announcement_channel"] = prompt_input(
+            "Enter the channel ID where Announcements should be sent (Discord): ")
+    else:
+        config["discord"]["announcement_channel"] = None
 
     logger.info("Enter server IDs one by one. Leave blank to finish.")
     logger.info("Find the ID in your Game Panel URL → https://games.bisecthosting.com/server/<ID>")

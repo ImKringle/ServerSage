@@ -28,6 +28,14 @@ GAME_LIST = {
             "query": True,
             "port": 1
         },
+    },
+    "VRising": {
+        "log_file": "logs/VRisingServer.log",
+        "mods_dir": "BepInEx/plugins",
+        "steam": {
+            "query": True,
+            "port": 1
+        }
     }
 }
 

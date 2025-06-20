@@ -4,7 +4,7 @@ from helper.utilities import resolve_server
 from steam.game_servers import a2s_info
 import asyncio
 
-async def query_steam_server(api_manager, panel_config, server_input):
+async def query_server(api_manager, panel_config, server_input):
     """
     Query a server's Steam Query info given a server ID or partial name.
     Returns tuple (Steam Query info dict, ip, port) or None.

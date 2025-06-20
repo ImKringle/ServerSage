@@ -99,12 +99,17 @@ class Resources(commands.Cog):
         self.api_manager = bot.api_manager
         self.panel_config = bot.panel_config
         self.control_channel = bot.control_channel
-        self.stats_channel_id = bot.config.get("discord", {}).get("stats_channel") or bot.stats_channel
-        self.stats_message_id = bot.config.get("stats_message_id") or None
-        self.stats_task.start()
+        self.do_resource_loop = bot.config.get("discord", {}).get("doResourceLoop", True)
+        self.stats_channel_id = bot.config.get("discord", {}).get("stats_channel") or None
+        self.stats_message_id = bot.config.get("discord", {}).get("stats_message_id") or None
+        if self.do_resource_loop:
+            self.stats_task.start()
+        else:
+            logger.info("Resource Loop is disabled in your Config. Skipping..")
 
     def cog_unload(self):
-        self.stats_task.cancel()
+        if self.do_resource_loop and self.stats_task.is_running():
+            self.stats_task.cancel()
 
     @tasks.loop(seconds=15.0)
     async def stats_task(self):
