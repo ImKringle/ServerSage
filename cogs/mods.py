@@ -1,5 +1,6 @@
-from discord.ext import commands
 import discord
+from discord.ext import commands
+from discord import app_commands
 from fnmatch import fnmatch
 from helper.utilities import validate_command_context
 from helper.get_game import get_game_name_and_data
@@ -9,7 +10,7 @@ class ModsManager(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.api_manager = bot.api_manager
-        self.panel_config = bot.panel_config
+        self.cfg = bot.config
         self.control_channel = bot.control_channel
 
     async def get_mods_dir_for_server(self, server_name: str):
@@ -30,24 +31,33 @@ class ModsManager(commands.Cog):
         response = await self.api_manager.make_request(url)
         return [file["attributes"] for file in response.get("data", []) if "attributes" in file]
 
-    @commands.command(name="mods-list")
-    async def mods_list(self, ctx, *, server_input: str):
+    mods = app_commands.Group(name="mods", description="Manage server mods")
+
+    @mods.command(name="list", description="List mods for a server")
+    @app_commands.describe(server_input="Server name or ID")
+    async def mods_list(self, interaction: discord.Interaction, server_input: str):
         is_valid, server_id, server_name, error_message = await validate_command_context(
-            ctx, self.panel_config, self.control_channel, server_input
+            interaction, self.cfg, self.control_channel, server_input
         )
         if not is_valid:
-            await ctx.send(error_message)
+            await interaction.response.send_message(error_message, ephemeral=True)
             return
 
         mods_dir = await self.get_mods_dir_for_server(server_name)
         if not mods_dir:
-            await ctx.send(f"❌ Server '{server_name}' does not have a mods directory configured.")
+            await interaction.response.send_message(
+                f"❌ Server '{server_name}' does not have a mods directory configured.",
+                ephemeral=True
+            )
             return
 
         try:
             files = await self.list_mods_files(server_id, mods_dir)
             if not files:
-                await ctx.send(f"ℹ️ No files found in mods directory `{mods_dir}` for server `{server_name}`.")
+                await interaction.response.send_message(
+                    f"ℹ️ No files found in mods directory `{mods_dir}` for server `{server_name}`.",
+                    ephemeral=True
+                )
                 return
 
             file_names = sorted(
@@ -60,37 +70,55 @@ class ModsManager(commands.Cog):
                 description=file_list_str,
                 color=discord.Color.blue()
             )
-            await ctx.send(embed=embed)
+            await interaction.response.send_message(embed=embed)
         except Exception as e:
-            await ctx.send(f"⚠️ Failed to fetch mods list for `{server_name}`: {e}")
+            await interaction.response.send_message(
+                f"⚠️ Failed to fetch mods list for `{server_name}`: {e}",
+                ephemeral=True
+            )
 
-    @commands.command(name="mods-manage")
-    async def mods_manage(self, ctx, action: str, mod_pattern: str, *, server_input: str):
-        """
-        Enable or disable mods by renaming files in the mods directory.
-        Usage: !mods-manage enable|disable <mod_pattern> <server>
-        """
+    @mods.command(name="manage", description="Enable or disable mods for a server")
+    @app_commands.describe(
+        action="Action to perform: enable or disable",
+        mod_pattern="Mod filename pattern (supports wildcards)",
+        server_input="Server name or ID"
+    )
+    async def mods_manage(
+        self,
+        interaction: discord.Interaction,
+        action: str,
+        mod_pattern: str,
+        server_input: str
+    ):
         action = action.lower()
         if action not in ("enable", "disable"):
-            await ctx.send("❌ Action must be 'enable' or 'disable'.")
+            await interaction.response.send_message(
+                "❌ Action must be 'enable' or 'disable'.", ephemeral=True
+            )
             return
 
         is_valid, server_id, server_name, error_message = await validate_command_context(
-            ctx, self.panel_config, self.control_channel, server_input
+            interaction, self.cfg, self.control_channel, server_input
         )
         if not is_valid:
-            await ctx.send(error_message)
+            await interaction.response.send_message(error_message, ephemeral=True)
             return
 
         mods_dir = await self.get_mods_dir_for_server(server_name)
         if not mods_dir:
-            await ctx.send(f"❌ Server '{server_name}' does not have a mods directory configured.")
+            await interaction.response.send_message(
+                f"❌ Server '{server_name}' does not have a mods directory configured.",
+                ephemeral=True
+            )
             return
 
         try:
             files = await self.list_mods_files(server_id, mods_dir)
             if not files:
-                await ctx.send(f"ℹ️ No files found in mods directory `{mods_dir}` for server `{server_name}`.")
+                await interaction.response.send_message(
+                    f"ℹ️ No files found in mods directory `{mods_dir}` for server `{server_name}`.",
+                    ephemeral=True
+                )
                 return
 
             rename_files = []
@@ -116,7 +144,10 @@ class ModsManager(commands.Cog):
                     affected_names.append(filename)
 
             if not rename_files and not skipped_folders:
-                await ctx.send(f"ℹ️ No mods matched or required action `{action}` in `{mods_dir}`.")
+                await interaction.response.send_message(
+                    f"ℹ️ No mods matched or required action `{action}` in `{mods_dir}`.",
+                    ephemeral=True
+                )
                 return
 
             if rename_files:
@@ -136,10 +167,12 @@ class ModsManager(commands.Cog):
                 response_lines.append("⚠️ The following are folders and must be removed manually:")
                 response_lines.append("```" + "\n".join(skipped_folders) + "```")
 
-            await ctx.send("\n".join(response_lines))
-
+            await interaction.response.send_message("\n".join(response_lines))
         except Exception as e:
-            await ctx.send(f"⚠️ Failed to {action} mods on `{server_name}`: {e}")
+            await interaction.response.send_message(
+                f"⚠️ Failed to {action} mods on `{server_name}`: {e}",
+                ephemeral=True
+            )
 
 async def setup(bot):
     await bot.add_cog(ModsManager(bot))

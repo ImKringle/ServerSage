@@ -1,5 +1,6 @@
 from discord.ext import commands
 import discord
+from discord import app_commands
 from helper.steam_handler import query_server
 from helper.utilities import validate_command_context
 
@@ -10,23 +11,21 @@ class QuerySteam(commands.Cog):
         self.panel_config = bot.panel_config
         self.control_channel = bot.control_channel
 
-    @commands.command(name="query")
-    async def query_steam(self, ctx, *, server_input: str):
-        """
-        Queries the specified server via Steam Query and replies with an embed showing key info.
-        """
+    @app_commands.command(name="query", description="Query a server via Steam Query and show info")
+    @app_commands.describe(server_input="Server name or ID to query")
+    async def query_steam(self, interaction: discord.Interaction, server_input: str):
         is_valid, _, server_name, error_message = await validate_command_context(
-            ctx, self.panel_config, self.control_channel, server_input
+            interaction, self.panel_config, self.control_channel, server_input
         )
         if not is_valid:
-            await ctx.send(error_message)
+            await interaction.response.send_message(error_message, ephemeral=True)
             return
 
-        await ctx.send(f"📡 Querying `{server_name}` via Steam...")
+        await interaction.response.send_message(f"📡 Querying `{server_name}` via Steam...")
 
         result = await query_server(self.api_manager, self.panel_config, server_input)
         if not result:
-            await ctx.send(f"❌ Failed to query server `{server_name}` or no data available.")
+            await interaction.followup.send(f"❌ Failed to query server `{server_name}` or no data available.")
             return
 
         info, ip, port = result
@@ -36,11 +35,11 @@ class QuerySteam(commands.Cog):
         max_players = info.get("max_players")
         ping = info.get("_ping")
         connection_info = f"{ip}:{port}"
+
         embed = discord.Embed(
             title=f"{name} - Query Results",
             color=discord.Color.blue()
         )
-
         embed.add_field(name="Game", value=game, inline=False)
         embed.add_field(name="Connection Details", value=connection_info, inline=False)
         if players is not None and max_players is not None:
@@ -48,7 +47,7 @@ class QuerySteam(commands.Cog):
         if ping is not None:
             embed.add_field(name="Ping (ms)", value=f"{round(ping)}", inline=False)
 
-        await ctx.send(embed=embed)
+        await interaction.followup.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(QuerySteam(bot))

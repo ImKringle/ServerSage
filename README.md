@@ -8,23 +8,34 @@
 
 ## Features & Command Usage
 
-| Feature                 | Description                                    | Example Command Usage                                   |
-|-------------------------|------------------------------------------------|---------------------------------------------------------|
-| Power Actions           | Start, stop, restart, kill servers             | `!start 63ce2hd8`                                       |
-| Server Listing          | View servers accessible from the API           | `!list`                                                 |
-| Resource Stats          | Real time CPU, RAM, Disk and Uptime statistics | `!stats 63ce2hd8`                                       |
-| Remote Command Exec     | Send commands to the Servers "Console" window  | `!command 63ce2hd8 "status"`                            |
-| Hidable Servers         | Hide servers from bot listing + command use    | Configured via setup                                    |
-| Player List Management  | Track and clear inactive players               | `!playerlist 63ce2hd8` / `!clearplayers 63ce2hd8 7d`    |
-| Log Viewing             | View latest or specified server logs           | `!logs 63ce2hd8` / `!logs 63ce2hd8 logs/server.log`     |
-| Steam Query             | Query server status via Steam Query protocol   | `!query 63ce2hd8`                                       |
-| Panel → Discord Announce| Forward panel announcements               | `!announcements 88d78549`                               |
-| Plugin/Mod Management   | Enable/Disable Mods/Plugins               | `!mods-list 88d78549` / `!mods-manage enable GTNH.jar 88d78549` |
-| Startup Tab Editing     | Modify Startup Options (⏳)                     | —                                                       |
-| File Management         | Upload/Download Files (⏳)                      | —                                                       |
-| Activity Logs           | Audit panel actions in Discord (⏳)             | —                                                       |
+### Discord Commands
+| Feature                 | Description                                    | Example Command Usage                                           |
+|-------------------------|------------------------------------------------|-----------------------------------------------------------------|
+| Power Actions           | Start, stop, restart, kill servers             | `/start 63ce2hd8`                                               |
+| Server Listing          | View servers accessible from the API           | `/list`                                                         |
+| Resource Stats          | Real time CPU, RAM, Disk and Uptime statistics | `/stats 63ce2hd8`                                               |
+| Remote Command Exec     | Send commands to the Servers "Console" window  | `/command 63ce2hd8 "status"`                                    |
+| Hidable Servers         | Hide servers from bot listing + command use    | Configured on setup and in Console                              |
+| Player List Management  | Track and clear inactive players               | `/players clear 63ce2hd8 7d` / `!players list 63ce2hd8`         |
+| Log Viewing             | View latest or specified server logs           | `/logs 63ce2hd8` / `/logs 63ce2hd8 logs/server.log`             |
+| Steam Query             | Query server status via Steam Query protocol   | `/query 63ce2hd8`                                               |
+| Panel → Discord Announce| Forward panel announcements                     | `/announcements 88d78549`                                       |
+| Plugin/Mod Management   | Enable/Disable Mods/Plugins                      | `/mods list 88d78549` / `/mods manage enable GTNH.jar 88d78549` |
+| Startup Tab Editing     | Modify Startup Options (⏳)                      | —                                                               |
+| File Management         | Upload/Download Files (⏳)                       | —                                                               |
+| Activity Logs           | Audit panel actions in Discord (⏳)             | —                                                               |
 
---- 
+### Console Commands
+ServerSage also offers a built-in **console interface** running alongside the Discord bot in your terminal, allowing you to interact with the SQLite Database at runtime
+
+| Feature           | Description                                               | Example Command Usage                         |
+|-------------------|-----------------------------------------------------------|-----------------------------------------------|
+| Reset Config      | Reset entire config database with confirmation            | `reset`                                       |
+| Update Config     | Update a config entry by specifying section.key and value | `update discord.control_channel 123456789`   |
+| List Config       | List entire config or a specific section                  | `list` (all sections) / `list discord` (one section) |
+| Exit Console      | Closes down Console + Bot Process                         | `exit`                                        |
+
+---
 
 ## 📎Requirements
 
@@ -70,8 +81,7 @@ ServerSage connects with the [ServerSpawnAPI](https://games.bisecthosting.com/) 
 1. **Clone the repository and enter the folder:** `git clone https://github.com/ImKringle/serversage.git && cd serversage`
 2. **Install required Python packages:** `pip install -r requirements.txt`
 3. **Start the bot:** `python bot.py`
-
-> ❗ On first run, an interactive setup will create your `config.yaml`. Avoid manual edits to this file.
+> ❗ On first run, an interactive setup will create a SQLite Database for you. Once created, use STDIN for all manual management
 
 ---
 
@@ -80,9 +90,7 @@ ServerSage connects with the [ServerSpawnAPI](https://games.bisecthosting.com/) 
 Contributions, suggestions, bug reports, and support questions are all welcome!
 
 - **Issues:** Report bugs, request features, or ask for help on [GitHub Issues](https://github.com/ImKringle/ServerSage/issues).  
-- **Pull Requests:** Fork, make changes, and submit PRs following existing style and documentation.  
-- **Discussions:** Share ideas, get community support, or brainstorm on [GitHub Discussions](https://github.com/ImKringle/ServerSage/discussions).  
-
+- **Pull Requests:** Fork, make changes, and submit PRs following existing style and documentation.
 Thank you for helping improve and support ServerSage!
 
 ---

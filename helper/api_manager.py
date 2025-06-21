@@ -1,29 +1,21 @@
 import aiohttp
 import time
-from helper.logger import logger
-from helper.config import save_config, load_config
+from .logger import logger
+from .config_db import SQLiteConfig
 
 class APIManager:
     """
     Async helper class for interacting with the BisectHosting API.
     """
-    def __init__(self, panel_config, config_path="config.yaml"):
-        """
-        Initialize the APIManager with panel config and optional config file path.
-        Sets API key, base URL, and initializes internal state.
-        """
+    def __init__(self, panel_config: dict, config: SQLiteConfig):
         self.api_key = panel_config.get("APIKey")
         self.base_url = "https://games.bisecthosting.com/api/client"
-        self.config_path = config_path
         self.panel_config = panel_config
+        self.cfg = config
         self._session = None
         self._rate_limited_until = 0
 
     async def download_file(self, url: str) -> bytes:
-        """
-        Download a raw file from the API (used for logs or configs).
-        This does not parse JSON, just returns raw byte content.
-        """
         session = await self._get_session()
         now = time.monotonic()
         if now < self._rate_limited_until:
@@ -50,10 +42,6 @@ class APIManager:
             raise
 
     async def _get_session(self):
-        """
-        Lazily create and return an aiohttp ClientSession with proper headers.
-        Reuses the session if already created.
-        """
         if self._session is None:
             self._session = aiohttp.ClientSession(headers={
                 "Authorization": f"Bearer {self.api_key}",
@@ -63,10 +51,6 @@ class APIManager:
         return self._session
 
     async def close(self):
-        """
-        Close the aiohttp ClientSession if it exists.
-        Should be called when shutting down to clean up resources.
-        """
         if self._session:
             await self._session.close()
 
@@ -78,7 +62,6 @@ class APIManager:
             self._rate_limited_until = time.monotonic() + 60
             logger.error("Rate limit hit (429). Blocking API calls for 60 seconds.")
             raise Exception("API rate limit exceeded (429). Pausing requests for 60 seconds.")
-
         if status == 504:
             self._rate_limited_until = time.monotonic() + 600
             logger.error("CloudFlare Timeout (504). Blocking API calls for 10 minutes.")
@@ -120,14 +103,17 @@ class APIManager:
     async def fetch_all_servers(self):
         """
         Fetch the list of servers from the API and synchronize with local config.
-        Updates local config with any new or removed servers, and reindexes the list.
-        Returns a list of server dicts with 'id' and 'name'.
+        Returns a list of server dicts with 'id', 'name', and 'hide'.
         """
-        url = f"{self.base_url}/"
+        url = f"{self.base_url}"
         response = await self.make_request(url)
         servers = response.get("data", [])
 
-        config_servers = self.panel_config.get("servers", {})
+        current_servers = {
+            k: self.cfg.get_section(k)
+            for k in self.cfg.all()
+            if k.startswith("server_")
+        }
 
         api_server_ids = set()
         api_servers_map = {}
@@ -140,33 +126,40 @@ class APIManager:
                 api_server_ids.add(server_id)
                 api_servers_map[server_id] = name
 
-        config_id_to_key = {v["id"]: k for k, v in config_servers.items() if "id" in v}
+        config_id_to_key = {
+            v.get("id"): k for k, v in current_servers.items() if "id" in v
+        }
 
-        to_remove = [key for key, v in config_servers.items() if v.get("id") not in api_server_ids]
-        for key in to_remove:
-            del config_servers[key]
+        for key, val in list(current_servers.items()):
+            if val.get("id") not in api_server_ids:
+                self.cfg.delete_section(key)
 
-        for server_id in api_server_ids:
-            if server_id not in config_id_to_key:
-                config_servers[server_id] = {
-                    "name": api_servers_map[server_id],
-                    "id": server_id,
-                    "hide": False
-                }
-            else:
-                key = config_id_to_key[server_id]
-                if config_servers[key]["name"] != api_servers_map[server_id]:
-                    config_servers[key]["name"] = api_servers_map[server_id]
-                    config_servers[key]["hide"] = config_servers[key].get("hide", False)
+        index = 1
+        for server_id in sorted(api_server_ids):
+            name = api_servers_map[server_id]
+            existing_key = config_id_to_key.get(server_id)
+            section = existing_key or f"server_{index}"
 
-        new_servers = {}
-        sorted_servers = sorted(config_servers.values(), key=lambda s: s["name"].lower())
-        for idx, server in enumerate(sorted_servers, 1):
-            new_servers[str(idx)] = server
+            while section in current_servers and existing_key is None:
+                index += 1
+                section = f"server_{index}"
 
-        self.panel_config["servers"] = new_servers
-        config = load_config()
-        config["panel"] = self.panel_config
-        save_config(config=config, path=self.config_path)
+            self.cfg.set(section, "id", server_id)
+            self.cfg.set(section, "name", name)
+            if self.cfg.get(section, "hide", None) is None:
+                self.cfg.set(section, "hide", False)
 
-        return [{"id": v["id"], "name": v["name"], "hide": v.get("hide", False)} for v in new_servers.values()]
+            index += 1
+
+        if hasattr(self.cfg, "save"):
+            self.cfg.save()
+
+        return [
+            {
+                "id": self.cfg.get(k, "id"),
+                "name": self.cfg.get(k, "name"),
+                "hide": self.cfg.get(k, "hide", False),
+            }
+            for k in self.cfg.all()
+            if k.startswith("server_")
+        ]

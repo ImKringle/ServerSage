@@ -1,8 +1,8 @@
 from discord.ext import commands, tasks
 import discord
+from discord import app_commands
 from helper.logger import logger
 from helper.utilities import validate_command_context
-from helper.config import save_config
 
 def create_bar(percent: float, size: int = 15) -> str:
     if percent < 0:
@@ -56,7 +56,6 @@ def format_server_stats(server_name: str,
         ""
     ])
 
-
 def extract_resource_data(limits: dict, resources: dict) -> dict:
     mem_limit_mb = limits.get("memory", 0)
     mem_limit_gb = mem_limit_mb / 1024 if mem_limit_mb else 0
@@ -92,17 +91,14 @@ def extract_resource_data(limits: dict, resources: dict) -> dict:
         "uptime_seconds": uptime_seconds
     }
 
-
 class Resources(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.api_manager = bot.api_manager
-        self.panel_config = bot.panel_config
         self.control_channel = bot.control_channel
-        raw_loop_value = bot.config.get("bot", {}).get("doResourceLoop", False)
+        self.cfg = bot.config
+        raw_loop_value = bot.config.get("bot", "doResourceLoop", False)
         self.do_resource_loop = str(raw_loop_value).lower() == "true"
-        self.stats_channel_id = bot.config.get("discord", {}).get("stats_channel") or None
-        self.stats_message_id = bot.config.get("discord", {}).get("stats_message_id") or None
         logger.info(f"Resource Loop enabled: {self.do_resource_loop}")
         if self.do_resource_loop:
             self.stats_task.start()
@@ -116,105 +112,103 @@ class Resources(commands.Cog):
     @tasks.loop(seconds=15.0)
     async def stats_task(self):
         await self.bot.wait_until_ready()
-        if not self.stats_channel_id:
-            logger.warning("Stats channel ID not set in config. Skipping stats loop.")
-            return
+        try:
+            stats_channel = self.cfg.get_section("discord")
+            stats_channel_id = stats_channel.get("stats_channel")
+            stats_message_id = stats_channel.get("stats_message_id")
+            if not stats_channel_id:
+                logger.warning("Stats channel ID not set in config. Skipping stats loop.")
+                return
+            channel = self.bot.get_channel(int(stats_channel_id))
+            if channel is None:
+                logger.error(f"Stats channel ID {stats_channel_id} not found or bot missing access.")
+                return
+            servers = {
+                key: self.cfg.get_section(key)
+                for key in self.cfg.all_sections()
+                if key.startswith("server_")
+            }
+            if not servers:
+                logger.info("No servers found in panel config for stats loop.")
+                return
+            embed = discord.Embed(title="Combined Resource Stats", color=discord.Color.blue())
+            combined_text = []
+            for key, info in servers.items():
+                if info.get("hide", False):
+                    continue
+                server_id = info.get("id")
+                server_name = info.get("name")
+                if not server_id:
+                    continue
+                try:
+                    server_details_url = f"{self.api_manager.base_url}/servers/{server_id}"
+                    limits_response = await self.api_manager.make_request(server_details_url)
+                    limits_data = limits_response.get("attributes", {}).get("limits", {})
 
-        channel = self.bot.get_channel(int(self.stats_channel_id))
-        if channel is None:
-            logger.error(f"Stats channel ID {self.stats_channel_id} not found or bot missing access.")
-            return
-
-        servers = self.panel_config.get("servers", {})
-        if not servers:
-            logger.info("No servers found in panel config for stats loop.")
-            return
-
-        embed = discord.Embed(title="Combined Resource Stats", color=discord.Color.blue())
-        combined_text = []
-
-        for key, info in servers.items():
-            if info.get("hide", False):
-                continue
-
-            server_id = info.get("id")
-            server_name = info.get("name")
-            if not server_id:
-                continue
-
-            try:
-                server_details_url = f"{self.api_manager.base_url}/servers/{server_id}"
-                limits_response = await self.api_manager.make_request(server_details_url)
-                limits_data = limits_response.get("attributes", {}).get("limits", {})
-
-                resources_url = f"{self.api_manager.base_url}/servers/{server_id}/resources"
-                stats_response = await self.api_manager.make_request(resources_url)
-                stats_attributes = stats_response.get("attributes", {})
-                server_state = stats_attributes.get("current_state")
-                resource_data = stats_attributes.get("resources", {})
-
-                if server_state != "running":
+                    resources_url = f"{self.api_manager.base_url}/servers/{server_id}/resources"
+                    stats_response = await self.api_manager.make_request(resources_url)
+                    stats_attributes = stats_response.get("attributes", {})
+                    server_state = stats_attributes.get("current_state")
+                    resource_data = stats_attributes.get("resources", {})
+                    if server_state != "running":
+                        combined_text.append(
+                            f"~ {server_name} ~\n"
+                            "--\n"
+                            ":x: **Offline**\n"
+                            "--\n"
+                            ""
+                        )
+                        continue
+                    stats = extract_resource_data(limits_data, resource_data)
+                    uptime_str = format_uptime(stats["uptime_seconds"])
+                    combined_text.append(
+                        format_server_stats(
+                            server_name,
+                            stats["mem_used_gb"], stats["mem_pct"],
+                            stats["cpu_used_pct"], stats["cpu_pct"],
+                            stats["disk_used_gb"], stats["disk_pct"],
+                            uptime_str
+                        )
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to fetch stats for server {server_name} ({server_id}): {e}")
                     combined_text.append(
                         f"~ {server_name} ~\n"
                         "--\n"
-                        ":x: **Offline**\n"
+                        "⚠️ Error fetching stats\n"
                         "--\n"
                         ""
                     )
-                    continue
-
-                stats = extract_resource_data(limits_data, resource_data)
-                uptime_str = format_uptime(stats["uptime_seconds"])
-                combined_text.append(
-                    format_server_stats(
-                        server_name,
-                        stats["mem_used_gb"], stats["mem_pct"],
-                        stats["cpu_used_pct"], stats["cpu_pct"],
-                        stats["disk_used_gb"], stats["disk_pct"],
-                        uptime_str
-                    )
-                )
-            except Exception as e:
-                logger.error(f"Failed to fetch stats for server {server_name} ({server_id}): {e}")
-                combined_text.append(
-                    f"~ {server_name} ~\n"
-                    "--\n"
-                    "⚠️ Error fetching stats\n"
-                    "--\n"
-                    ""
-                )
-
-        if combined_text:
-            embed.description = "\n".join(combined_text)
-
-        if self.stats_message_id:
+            if combined_text:
+                embed.description = "\n".join(combined_text)
             try:
-                msg = await channel.fetch_message(int(self.stats_message_id))
-                await msg.edit(embed=embed)
+                if stats_message_id:
+                    msg = await channel.fetch_message(int(stats_message_id))
+                    await msg.edit(embed=embed)
+                else:
+                    msg = await channel.send(embed=embed)
+                    self.bot.config.set("discord", "stats_message_id", str(msg.id))
+                    logger.info("Sent initial combined stats message and saved message ID.")
             except discord.NotFound:
                 msg = await channel.send(embed=embed)
-                self.stats_message_id = str(msg.id)
-                save_config(bot=self.bot, updates={"discord": {"stats_message_id": self.stats_message_id}})
+                self.bot.config.set("discord", "stats_message_id", str(msg.id))
                 logger.info("Stats message missing, sent new combined message and updated config.")
             except Exception as e:
                 logger.error(f"Error editing combined stats message: {e}")
-        else:
-            msg = await channel.send(embed=embed)
-            self.stats_message_id = str(msg.id)
-            save_config(bot=self.bot, updates={"discord": {"stats_message_id": self.stats_message_id}})
-            logger.info("Sent initial combined stats message and saved message ID.")
+        except Exception as e:
+            logger.error(f"Unexpected error in stats_task loop: {e}")
 
-    @commands.command(name="stats")
-    async def stats(self, ctx, *, query: str):
-        """
-        Grabs real time CPU, RAM, Disk usage data and Uptime stats for a server
-        """
+    @app_commands.command(name="stats", description="Get resource stats for a server")
+    @app_commands.describe(server="Server name or ID to query stats")
+    async def stats(self, interaction: discord.Interaction, server: str):
         is_valid, server_id, server_name, error_message = await validate_command_context(
-            ctx, self.panel_config, self.control_channel, query
+            interaction, self.cfg, self.control_channel, server
         )
         if not is_valid:
-            await ctx.send(error_message)
+            await interaction.response.send_message(error_message, ephemeral=True)
             return
+
+        await interaction.response.defer()
 
         try:
             limits_url = f"{self.api_manager.base_url}/servers/{server_id}"
@@ -229,8 +223,9 @@ class Resources(commands.Cog):
             resource_data = stats_attributes.get("resources", {})
 
             if server_state != "running":
-                await ctx.send(
-                    f"❌ **{server_name}** is currently offline. Use `!start {server_id}` to power it on.")
+                await interaction.followup.send(
+                    f"❌ **{server_name}** is currently offline. Use `/start {server_id}` to power it on."
+                )
                 return
 
             stats = extract_resource_data(limits_data, resource_data)
@@ -251,10 +246,9 @@ class Resources(commands.Cog):
                 color=discord.Color.green()
             )
 
-            await ctx.send(embed=embed)
+            await interaction.followup.send(embed=embed)
         except Exception as e:
             logger.error(f"Error fetching stats for {server_id}: {e}")
-            await ctx.send(f"⚠️ Failed to fetch resource stats for **{server_name}**. Please try again later.")
 
 async def setup(bot):
     await bot.add_cog(Resources(bot))

@@ -1,3 +1,5 @@
 .venv
 .idea
-config.yaml
+serversage_config.db
+SS.Cache
+logs
