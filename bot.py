@@ -125,10 +125,17 @@ async def on_ready():
     logger.info(f"Bot is online as {bot.user}!")
     logger.info("Successfully finished startup")
     try:
-        await tree.sync()
-        logger.info("Slash commands synced with Discord.")
+        guild_id = bot.config.get("discord", "guild_id")
+        if guild_id:
+            guild = discord.Object(id=int(guild_id))
+            await tree.sync(guild=guild)
+            logger.info(f"Slash commands synced to guild {guild_id}.")
+        else:
+            await tree.sync()
+            logger.warning("Guild ID not set in config, synced commands globally.")
     except Exception as e:
         logger.error(f"Failed to sync slash commands: {e}")
+
     client_id = await get_client_id(token)
     if client_id:
         invite_url = f"https://discord.com/oauth2/authorize?client_id={client_id}&scope=bot%20applications.commands&permissions=551903374336"

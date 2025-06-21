@@ -46,6 +46,27 @@ async def update_config_entry(config, path: str, value: str):
     print(f"Updated [{section}] {key} = {value}")
     logger.info(f"Config updated via console: [{section}] {key} = {value}")
 
+async def add_config_entry(config, path: str, value: str):
+    try:
+        section, key = _get_section_key(path)
+    except ValueError as e:
+        print(str(e))
+        return
+    config.set(section, key, value)
+    config.save()
+    print(f"Added [{section}] {key} = {value}")
+    logger.info(f"Config added via console: [{section}] {key} = {value}")
+
+async def list_config_section(config, section: str):
+    section_data = config.get_section(section)
+    if section_data is None:
+        print(f"Section '{section}' does not exist.")
+        return
+    print(f"\n[{section}]")
+    for key, value in section_data.items():
+        print(f"{key} = {value}")
+    print("")
+
 async def list_config_section(config, section: str):
     section_data = config.get_section(section)
     if section_data is None:
@@ -57,7 +78,7 @@ async def list_config_section(config, section: str):
     print("")
 
 async def run_console_loop(config, shutdown_func=None):
-    print("Config Console started. Commands:\n - reset\n - update <section.key> <value>\n - list [<section>]\n - exit\n")
+    print("Config Console started. Commands:\n - reset\n - update <section.key> <value>\n - add <section.key> <value>\n - list [<section>]\n - exit\n")
     try:
         while not console_stop_event.is_set():
             try:
@@ -82,9 +103,13 @@ async def run_console_loop(config, shutdown_func=None):
                     print("Usage: update <section.key> <value>")
                     continue
                 await update_config_entry(config, args[1], args[2])
+            elif command == "add":
+                if len(args) < 3:
+                    print("Usage: add <section.key> <value>")
+                    continue
+                await add_config_entry(config, args[1], args[2])
             elif command == "list":
                 if len(args) < 2:
-                    # No section specified, print entire config
                     all_sections = config.all()
                     if not all_sections:
                         print("Config is empty.")
@@ -97,7 +122,7 @@ async def run_console_loop(config, shutdown_func=None):
                 else:
                     await list_config_section(config, args[1])
             else:
-                print("Unknown command. Valid commands: reset, update, list, exit")
+                print("Unknown command. Valid commands: reset, update, add, list, exit")
     except KeyboardInterrupt:
         print("\nKeyboardInterrupt detected, exiting console...")
         console_stop_event.set()

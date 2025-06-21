@@ -79,7 +79,8 @@ def create_config():
     cfg.set("bot", "doResourceLoop", do_resource_loop)
     cfg.set("bot", "doAnnouncementLoop", do_announcement_loop)
     cfg.set("discord", "bot_token", prompt_input("Enter your Discord bot token:"))
-    cfg.set("discord", "control_channel", prompt_input("Enter the ID of the Server Channel where commands should be accepted:"))
+    cfg.set("discord", "control_channel", prompt_input("Enter the ID of the Channel where commands should be accepted:"))
+    cfg.set("discord", "guild_id", prompt_input("Enter the Discord Guild ID (Server ID) for slash command syncing:"))
     if do_resource_loop:
         cfg.set("discord", "stats_channel", prompt_input("Enter the channel ID for resource stats:"))
         cfg.set("discord", "stats_message_id", "")
