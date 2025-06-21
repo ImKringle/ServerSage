@@ -10,7 +10,7 @@ from helper.logger import logger, print_colored
 from helper.config_db import load_config, validate_config, create_config
 import helper.console as console_module
 
-version = "1.0.6"
+version = "1.0.7"
 ansi_art = r"""
 ----------------------------------------------------------------------------
   _________                                   _________                      
