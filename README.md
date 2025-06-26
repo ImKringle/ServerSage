@@ -1,7 +1,7 @@
 # ServerSage — Discord Game Server Manager
 
 **ServerSage** is a self-hosted Discord bot for managing game servers via
-the [BisectHosting ServerSpawn API](https://games.bisecthosting.com/docs). Control your servers securely from Discord.
+the [BisectHosting StarbaseAPI](https://games.bisecthosting.com/docs). Control your servers securely from Discord.
 > ⚠️ This bot is only intended for SelfHosted use. There is not currently a build supporting otherwise.
 
 <img src="assets/banner.jpeg" alt="ServerSage" width="720" />
