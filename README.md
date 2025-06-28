@@ -74,7 +74,7 @@ You’ll need to register your own bot:
 
 ### 🎮 BisectHosting API Access
 
-ServerSage connects with the [ServerSpawnAPI](https://games.bisecthosting.com/) to control your servers.
+ServerSage connects with the [StarbaseAPI](https://games.bisecthosting.com/) to control your servers.
 
 1. Log into your Games Panel account
 2. Navigate to **Account → API**
